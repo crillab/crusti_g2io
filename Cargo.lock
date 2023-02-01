@@ -185,6 +185,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "crusti_app_helper",
+ "lazy_static",
  "petgraph",
  "petgraph-gen",
  "petgraph-graphml",

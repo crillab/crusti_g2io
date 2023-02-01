@@ -14,6 +14,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.68"
 crusti_app_helper = {path = "local_crates/crusti_app_helper-v0.1"}
+lazy_static = "1.4.0"
 petgraph = "0.6.2"
 petgraph-gen = "0.1.3"
 petgraph-graphml = "3.0.0"

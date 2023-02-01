@@ -2,7 +2,7 @@ mod display;
 mod generators;
 mod graph;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crusti_app_helper::{AppHelper, AppSettings, Arg, ArgMatches, Command, SubCommand};
 use graph::Graph;
 
@@ -75,8 +75,12 @@ impl<'a> Command<'a> for GenerateCommand {
     }
 
     fn execute(&self, arg_matches: &ArgMatches<'_>) -> Result<()> {
-        let outer_generator = generators::from_str(arg_matches.value_of(ARG_OUTER).unwrap())?;
-        let inner_generator = generators::from_str(arg_matches.value_of(ARG_INNER).unwrap())?;
+        let outer_generator =
+            generators::generator_factory_from_str(arg_matches.value_of(ARG_OUTER).unwrap())
+                .context("while parsing the outer generator CLI argument")?;
+        let inner_generator =
+            generators::generator_factory_from_str(arg_matches.value_of(ARG_INNER).unwrap())
+                .context("while parsing the inner generator CLI argument")?;
         let mut rng = rand::thread_rng();
         let g = Graph::new_inner_outer(
             outer_generator.as_ref(),

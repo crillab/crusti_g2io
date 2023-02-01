@@ -1,0 +1,89 @@
+use crate::graph::Graph;
+
+use super::{BoxedGenerator, GeneratorFactory};
+use anyhow::{anyhow, Context, Result};
+use rand::Rng;
+
+pub struct ChainGeneratorFactory;
+
+impl<R> GeneratorFactory<R> for ChainGeneratorFactory
+where
+    R: Rng,
+{
+    fn name(&self) -> &'static str {
+        "chain"
+    }
+
+    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
+        let context = "while building a chain generator";
+        let int_params = super::str_param_to_positive_integers(params).context(context)?;
+        if let &[n] = int_params.as_slice() {
+            Ok(Box::new(move |_| match n {
+                0 => Graph::default(),
+                1 => {
+                    let mut g = Graph::with_capacity(1, 0);
+                    g.new_node();
+                    g
+                }
+                _ => {
+                    let mut g = Graph::with_capacity(n, n - 1);
+                    (0..n - 1).for_each(|i| g.new_edge(i, i + 1));
+                    g
+                }
+            }))
+        } else {
+            Err(anyhow!("expected exactly 1 parameter"))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::NodeIndexType;
+    use rand::rngs::ThreadRng;
+
+    #[test]
+    fn test_not_enough_params() {
+        assert!(
+            (ChainGeneratorFactory.try_with_params("") as Result<BoxedGenerator<ThreadRng>>)
+                .is_err()
+        )
+    }
+
+    #[test]
+    fn test_too_much_params() {
+        assert!(
+            (ChainGeneratorFactory.try_with_params("1,1") as Result<BoxedGenerator<ThreadRng>>)
+                .is_err()
+        )
+    }
+
+    #[test]
+    fn test_chain_of_zero() {
+        let mut rng = rand::thread_rng();
+        let g = ChainGeneratorFactory.try_with_params("0").unwrap()(&mut rng);
+        assert_eq!(0, g.n_nodes());
+        assert_eq!(0, g.n_edges());
+    }
+
+    #[test]
+    fn test_chain_of_one() {
+        let mut rng = rand::thread_rng();
+        let g = ChainGeneratorFactory.try_with_params("1").unwrap()(&mut rng);
+        assert_eq!(1, g.n_nodes());
+        assert_eq!(0, g.n_edges());
+    }
+
+    #[test]
+    fn test_chain() {
+        let mut rng = rand::thread_rng();
+        let g = ChainGeneratorFactory.try_with_params("3").unwrap()(&mut rng);
+        assert_eq!(3, g.n_nodes());
+        assert_eq!(
+            vec![(0, 1), (1, 2)],
+            g.iter_edges()
+                .collect::<Vec<(NodeIndexType, NodeIndexType)>>()
+        );
+    }
+}
