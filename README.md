@@ -42,3 +42,7 @@ To generate a graph, the user must provide to the `generate` both inner and oute
 me@machine:/home/me$ crusti_g2io generate --inner ba/100,5 --outer chain/5 --linker f2f
 [...]
 ```
+
+By default, the output is formatted using the graphviz's dot format.
+The format can be changed with the `-f` option.
+Run `crusti_g2io generate -h` to get the list of available values for this option.
