@@ -7,6 +7,12 @@ pub type NodeIndexType = usize;
 #[derive(Default)]
 pub struct Graph(petgraph::Graph<(), (), Directed, NodeIndexType>);
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum InterGraphEdge {
+    FirstToSecond(NodeIndexType, NodeIndexType),
+    SecondToFirst(NodeIndexType, NodeIndexType),
+}
+
 impl Graph {
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
         Self(petgraph::Graph::with_capacity(n_nodes, n_edges))
@@ -21,7 +27,7 @@ impl Graph {
     where
         F: Fn(&mut R) -> Graph,
         G: Fn(&mut R) -> Graph,
-        H: Fn(&Graph, &Graph) -> Vec<(NodeIndexType, NodeIndexType)>,
+        H: Fn(&Graph, &Graph) -> Vec<InterGraphEdge>,
         R: Rng,
     {
         let outer = (outer_graph_builder)(rng);
@@ -49,10 +55,17 @@ impl Graph {
                 &inner_graphs[outer_edge.1],
             );
             inter_attacks.iter().for_each(|inter_edge| {
-                global_graph.new_edge(
-                    inter_edge.0 + cumulated_n_nodes[outer_edge.0],
-                    inter_edge.1 + cumulated_n_nodes[outer_edge.1],
-                )
+                let global_node_ids = match inter_edge {
+                    InterGraphEdge::FirstToSecond(a, b) => (
+                        a + cumulated_n_nodes[outer_edge.0],
+                        b + cumulated_n_nodes[outer_edge.1],
+                    ),
+                    InterGraphEdge::SecondToFirst(b, a) => (
+                        a + cumulated_n_nodes[outer_edge.1],
+                        b + cumulated_n_nodes[outer_edge.0],
+                    ),
+                };
+                global_graph.new_edge(global_node_ids.0, global_node_ids.1);
             });
         });
         global_graph
@@ -186,7 +199,8 @@ mod tests {
             g.new_edge(0, 1);
             g
         };
-        let first_node_edge_selector = |_: &Graph, _: &Graph| vec![(0, 0)];
+        let first_node_edge_selector =
+            |_: &Graph, _: &Graph| vec![InterGraphEdge::FirstToSecond(0, 0)];
         let inner_outer = Graph::new_inner_outer(
             chain_builder,
             circle_builder,
@@ -199,6 +213,40 @@ mod tests {
         expected.sort_unstable();
         assert_eq!(
             vec![(0, 1), (0, 3), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)],
+            expected
+        );
+    }
+
+    #[test]
+    fn test_inner_inv_outer() {
+        let circle_builder = |_: &mut ThreadRng| {
+            const N: usize = 3;
+            let mut g = Graph::with_capacity(N, N);
+            for i in 0..N - 1 {
+                g.new_edge(i, i + 1);
+            }
+            g.new_edge(N - 1, 0);
+            g
+        };
+        let chain_builder = |_: &mut ThreadRng| {
+            let mut g = Graph::with_capacity(2, 1);
+            g.new_edge(0, 1);
+            g
+        };
+        let first_node_edge_selector =
+            |_: &Graph, _: &Graph| vec![InterGraphEdge::SecondToFirst(0, 0)];
+        let inner_outer = Graph::new_inner_outer(
+            chain_builder,
+            circle_builder,
+            first_node_edge_selector,
+            &mut rand::thread_rng(),
+        );
+        let mut expected = inner_outer
+            .iter_edges()
+            .collect::<Vec<(NodeIndexType, NodeIndexType)>>();
+        expected.sort_unstable();
+        assert_eq!(
+            vec![(0, 1), (1, 2), (2, 0), (3, 0), (3, 4), (4, 5), (5, 3)],
             expected
         );
     }

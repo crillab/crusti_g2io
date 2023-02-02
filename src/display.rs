@@ -1,8 +1,6 @@
-use std::fmt::Display;
-
-use petgraph_graphml::GraphMl;
-
 use crate::graph::Graph;
+use petgraph_graphml::GraphMl;
+use std::fmt::Display;
 
 pub struct GraphMLDisplay<'a>(&'a Graph);
 

@@ -1,11 +1,12 @@
 use super::{BoxedGenerator, GeneratorFactory};
+use crate::utils::{self, Named};
 use anyhow::{anyhow, Context, Result};
 use petgraph_gen::barabasi_albert_graph;
 use rand::Rng;
 
 pub struct BarabasiAlbertGeneratorFactory;
 
-impl<R> GeneratorFactory<R> for BarabasiAlbertGeneratorFactory
+impl<R> Named<BoxedGenerator<R>> for BarabasiAlbertGeneratorFactory
 where
     R: Rng,
 {
@@ -15,21 +16,23 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
         let context = "while building a Barabasi-Albert generator";
-        let int_params = super::str_param_to_positive_integers(params).context(context)?;
+        let int_params = utils::str_param_to_positive_integers(params).context(context)?;
         if let &[n, m] = int_params.as_slice() {
             if m == 0 || m >= n {
                 return Err(anyhow!(
                     r#"second parameter ("m") must be higher than 0 and lower than the first one ("n")"#
-                ));
+                )).context(context);
             }
             Ok(Box::new(move |r| {
                 barabasi_albert_graph(r, n, m, None).into()
             }))
         } else {
-            Err(anyhow!("expected exactly 2 parameters"))
+            Err(anyhow!("expected exactly 2 parameters")).context(context)
         }
     }
 }
+
+impl<R> GeneratorFactory<R> for BarabasiAlbertGeneratorFactory where R: Rng {}
 
 #[cfg(test)]
 mod tests {

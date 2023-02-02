@@ -1,22 +1,21 @@
-use crate::graph::Graph;
-
 use super::{BoxedGenerator, GeneratorFactory};
+use crate::{
+    graph::Graph,
+    utils::{self, Named},
+};
 use anyhow::{anyhow, Context, Result};
 use rand::Rng;
 
 pub struct ChainGeneratorFactory;
 
-impl<R> GeneratorFactory<R> for ChainGeneratorFactory
-where
-    R: Rng,
-{
+impl<R> Named<BoxedGenerator<R>> for ChainGeneratorFactory {
     fn name(&self) -> &'static str {
         "chain"
     }
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
         let context = "while building a chain generator";
-        let int_params = super::str_param_to_positive_integers(params).context(context)?;
+        let int_params = utils::str_param_to_positive_integers(params).context(context)?;
         if let &[n] = int_params.as_slice() {
             Ok(Box::new(move |_| match n {
                 0 => Graph::default(),
@@ -32,10 +31,12 @@ where
                 }
             }))
         } else {
-            Err(anyhow!("expected exactly 1 parameter"))
+            Err(anyhow!("expected exactly 1 parameter")).context(context)
         }
     }
 }
+
+impl<R> GeneratorFactory<R> for ChainGeneratorFactory where R: Rng {}
 
 #[cfg(test)]
 mod tests {
