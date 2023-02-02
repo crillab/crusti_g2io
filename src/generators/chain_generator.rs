@@ -13,6 +13,13 @@ impl<R> Named<BoxedGenerator<R>> for ChainGeneratorFactory {
         "chain"
     }
 
+    fn description(&self) -> Vec<&'static str> {
+        vec![
+            "A generator producing a chain of nodes.",
+            "The first parameter gives the length of the chain.",
+        ]
+    }
+
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
         let context = "while building a chain generator";
         let int_params = utils::str_param_to_positive_integers(params).context(context)?;

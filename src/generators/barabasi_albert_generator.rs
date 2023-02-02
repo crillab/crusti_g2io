@@ -14,6 +14,10 @@ where
         "ba"
     }
 
+    fn description(&self) -> Vec<&'static str> {
+        vec!["A generator following the Barabási-Albert model, initialized by a star graph.","First parameter gives the number of nodes of the graph, while the second one gives the number of nodes of the initial star graph."]
+    }
+
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
         let context = "while building a Barabasi-Albert generator";
         let int_params = utils::str_param_to_positive_integers(params).context(context)?;

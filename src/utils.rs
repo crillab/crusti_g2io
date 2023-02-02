@@ -3,6 +3,8 @@ use anyhow::{anyhow, Context, Result};
 pub trait Named<T> {
     fn name(&self) -> &'static str;
 
+    fn description(&self) -> Vec<&'static str>;
+
     fn try_with_params(&self, params: &str) -> Result<T>;
 }
 

@@ -1,5 +1,5 @@
 mod first_to_first;
-pub use first_to_first::FirstToFirstLinker;
+pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 
 use crate::{
     graph::{Graph, InterGraphEdge},
@@ -13,7 +13,10 @@ pub type BoxedLinker = Box<dyn Fn(&Graph, &Graph) -> Vec<InterGraphEdge>>;
 pub trait Linker: Named<BoxedLinker> {}
 
 lazy_static! {
-    static ref LINKERS: [Box<dyn Linker + Sync>; 1] = [Box::new(FirstToFirstLinker),];
+    pub(crate) static ref LINKERS: [Box<dyn Linker + Sync>; 2] = [
+        Box::new(FirstToFirstLinker),
+        Box::new(BidirectionalFirstToFirstLinker)
+    ];
 }
 
 pub fn linker_from_str(s: &str) -> Result<BoxedLinker> {

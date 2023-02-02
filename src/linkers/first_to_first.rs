@@ -9,6 +9,10 @@ impl Named<BoxedLinker> for FirstToFirstLinker {
         "f2f"
     }
 
+    fn description(&self) -> Vec<&'static str> {
+        vec!["Links the lowest index node of the first graph to the lowest index node of the second graph."]
+    }
+
     fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {
         try_with_params(params, false)
     }
@@ -21,6 +25,10 @@ pub struct BidirectionalFirstToFirstLinker;
 impl Named<BoxedLinker> for BidirectionalFirstToFirstLinker {
     fn name(&self) -> &'static str {
         "f2f_bi"
+    }
+
+    fn description(&self) -> Vec<&'static str> {
+        vec!["Links the lowest index node of the first graph to the lowest index node of the second graph, and vice-versa."]
     }
 
     fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {

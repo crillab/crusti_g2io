@@ -21,7 +21,7 @@ where
 }
 
 lazy_static! {
-    static ref FACTORIES_THREAD_RNG: [Box<dyn GeneratorFactory<ThreadRng> + Sync>; 2] = [
+    pub(crate) static ref FACTORIES_THREAD_RNG: [Box<dyn GeneratorFactory<ThreadRng> + Sync>; 2] = [
         Box::new(BarabasiAlbertGeneratorFactory),
         Box::new(ChainGeneratorFactory)
     ];
