@@ -1,5 +1,5 @@
 use super::{BoxedLinker, Linker};
-use crate::{graph::InterGraphEdge, utils::NamedParam};
+use crate::{InterGraphEdge, NamedParam};
 use anyhow::{anyhow, Context, Result};
 
 /// A linker that connects first nodes.

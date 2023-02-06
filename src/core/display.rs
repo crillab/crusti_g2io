@@ -1,4 +1,4 @@
-use crate::graph::Graph;
+use crate::Graph;
 use petgraph::dot::{Config, Dot};
 use petgraph_graphml::GraphMl;
 use std::fmt::Display;

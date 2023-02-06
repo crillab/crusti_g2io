@@ -2,19 +2,15 @@
 
 #![warn(missing_docs)]
 
-mod display;
+mod core;
+pub use crate::core::Graph;
+pub use crate::core::InterGraphEdge;
+pub use crate::core::NamedParam;
+pub use crate::core::NodeIndexType;
 
 pub mod generators;
 pub use generators::BarabasiAlbertGeneratorFactory;
 pub use generators::ChainGeneratorFactory;
 
-mod graph;
-pub use graph::Graph;
-pub use graph::InterGraphEdge;
-pub use graph::NodeIndexType;
-
 pub mod linkers;
 pub use linkers::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
-
-mod utils;
-pub use utils::NamedParam;

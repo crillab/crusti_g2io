@@ -12,10 +12,7 @@
 mod first_to_first;
 pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 
-use crate::{
-    graph::{Graph, InterGraphEdge},
-    utils::{self, NamedParam},
-};
+use crate::{core::named_param, Graph, InterGraphEdge, NamedParam};
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 
@@ -60,7 +57,8 @@ pub fn iter_linkers() -> impl Iterator<Item = &'static (dyn Linker + Sync + 'sta
 /// assert!(linkers::linker_from_str("foo").is_err()); // unknown linker
 /// ```
 pub fn linker_from_str(s: &str) -> Result<BoxedLinker> {
-    utils::named_from_str(LINKERS.as_slice(), s).context("while building a linker from a string")
+    named_param::named_from_str(LINKERS.as_slice(), s)
+        .context("while building a linker from a string")
 }
 
 #[cfg(test)]

@@ -1,7 +1,6 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::utils::{self, NamedParam};
+use crate::{core::utils, NamedParam};
 use anyhow::{anyhow, Context, Result};
-use petgraph_gen::barabasi_albert_graph;
 use rand::Rng;
 
 /// A factory used to build generators for [Barabási-Albert](https://en.wikipedia.org/wiki/Barab%C3%A1si%E2%80%93Albert_model) graphs.
@@ -40,7 +39,7 @@ where
                 )).context(context);
             }
             Ok(Box::new(move |r| {
-                barabasi_albert_graph(r, n, m, None).into()
+                petgraph_gen::barabasi_albert_graph(r, n, m, None).into()
             }))
         } else {
             Err(anyhow!("expected exactly 2 parameters")).context(context)
@@ -53,7 +52,7 @@ impl<R> GeneratorFactory<R> for BarabasiAlbertGeneratorFactory where R: Rng {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::NodeIndexType;
+    use crate::NodeIndexType;
     use rand::rngs::ThreadRng;
 
     #[test]

@@ -1,8 +1,5 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{
-    graph::Graph,
-    utils::{self, NamedParam},
-};
+use crate::{core::utils, Graph, NamedParam};
 use anyhow::{anyhow, Context, Result};
 use rand::Rng;
 
@@ -53,7 +50,7 @@ impl<R> GeneratorFactory<R> for ChainGeneratorFactory where R: Rng {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::NodeIndexType;
+    use crate::NodeIndexType;
     use rand::rngs::ThreadRng;
 
     #[test]

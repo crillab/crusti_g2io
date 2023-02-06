@@ -22,10 +22,7 @@ pub use barabasi_albert_generator::BarabasiAlbertGeneratorFactory;
 mod chain_generator;
 pub use chain_generator::ChainGeneratorFactory;
 
-use crate::{
-    graph::Graph,
-    utils::{self, NamedParam},
-};
+use crate::{core::named_param, Graph, NamedParam};
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 use rand::Rng;
@@ -82,7 +79,7 @@ pub fn iter_generator_factories(
 /// assert!(generators::generator_factory_from_str("foo/3").is_err()); // unknown generator
 /// ```
 pub fn generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Pcg32>> {
-    utils::named_from_str(FACTORIES_THREAD_PCG32.as_slice(), s)
+    named_param::named_from_str(FACTORIES_THREAD_PCG32.as_slice(), s)
         .context("while building a generator from a string")
 }
 
