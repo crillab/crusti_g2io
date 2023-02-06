@@ -5,9 +5,11 @@
 //!
 //! ```
 //! # use crusti_g2io::generators;
+//! use rand_core::SeedableRng;
+//!
 //! // building a generator for Barabási-Albert graphs.
 //! let generator = generators::generator_factory_from_str("ba/100,5").unwrap();
-//! let mut rng = rand::thread_rng();
+//! let mut rng = rand_pcg::Pcg32::from_entropy();
 //! // building a graph
 //! let g1 = generator(&mut rng);
 //! // building another graph with the same generator
@@ -26,7 +28,8 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
-use rand::{rngs::ThreadRng, Rng};
+use rand::Rng;
+use rand_pcg::Pcg32;
 
 /// A boxed function that takes a random generator and outputs a graph.
 ///
@@ -35,10 +38,11 @@ use rand::{rngs::ThreadRng, Rng};
 ///
 /// ```
 /// # use crusti_g2io::generators;
+/// use rand_core::SeedableRng;
+///
 /// // getting a boxed generating function from a string
 /// let generator = generators::generator_factory_from_str("chain/3").unwrap();
-/// let mut rng = rand::thread_rng();
-/// let graph = generator(&mut rng);
+/// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
 pub type BoxedGenerator<R> = Box<dyn Fn(&mut R) -> Graph>;
 
@@ -50,7 +54,7 @@ where
 }
 
 lazy_static! {
-    pub(crate) static ref FACTORIES_THREAD_RNG: [Box<dyn GeneratorFactory<ThreadRng> + Sync>; 2] = [
+    pub(crate) static ref FACTORIES_THREAD_PCG32: [Box<dyn GeneratorFactory<Pcg32> + Sync>; 2] = [
         Box::new(BarabasiAlbertGeneratorFactory),
         Box::new(ChainGeneratorFactory)
     ];
@@ -65,8 +69,8 @@ lazy_static! {
 /// });
 /// ```
 pub fn iter_generator_factories(
-) -> impl Iterator<Item = &'static (dyn GeneratorFactory<ThreadRng> + Sync + 'static)> + 'static {
-    FACTORIES_THREAD_RNG.iter().map(|b| b.as_ref())
+) -> impl Iterator<Item = &'static (dyn GeneratorFactory<Pcg32> + Sync + 'static)> + 'static {
+    FACTORIES_THREAD_PCG32.iter().map(|b| b.as_ref())
 }
 
 /// Given a string representing a parameterized generator factory, returns the corresponding object.
@@ -77,8 +81,8 @@ pub fn iter_generator_factories(
 /// assert!(generators::generator_factory_from_str("chain/1,2,3").is_err()); // wrong parameters
 /// assert!(generators::generator_factory_from_str("foo/3").is_err()); // unknown generator
 /// ```
-pub fn generator_factory_from_str(s: &str) -> Result<BoxedGenerator<ThreadRng>> {
-    utils::named_from_str(FACTORIES_THREAD_RNG.as_slice(), s)
+pub fn generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Pcg32>> {
+    utils::named_from_str(FACTORIES_THREAD_PCG32.as_slice(), s)
         .context("while building a generator from a string")
 }
 

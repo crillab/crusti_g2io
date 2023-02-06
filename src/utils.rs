@@ -9,6 +9,7 @@ use anyhow::{anyhow, Context, Result};
 ///
 /// ```
 /// use crusti_g2io::generators;
+/// use rand_core::SeedableRng;
 ///
 /// // displaying the available generators
 /// for g in generators::iter_generator_factories() {
@@ -24,8 +25,7 @@ use anyhow::{anyhow, Context, Result};
 ///     .find(|f| f.name() == "chain")
 ///     .unwrap();
 /// let generator = generator_factory.try_with_params("3").unwrap();
-/// let mut rng = rand::thread_rng();
-/// let graph = generator(&mut rng);
+/// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
 pub trait NamedParam<T> {
     /// Returns the named associated with the alternative.
