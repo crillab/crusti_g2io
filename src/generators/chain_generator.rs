@@ -1,14 +1,19 @@
 use super::{BoxedGenerator, GeneratorFactory};
 use crate::{
     graph::Graph,
-    utils::{self, Named},
+    utils::{self, NamedParam},
 };
 use anyhow::{anyhow, Context, Result};
 use rand::Rng;
 
+/// A factory used to build generators for chain graphs.
+///
+/// Such factories can be created by passing `chain/n` to [`generators::generator_factory_from_str`](crate::generators#generator_factory_from_str),
+/// where `n` is the size of chain to produce and must at least 0.
+#[derive(Default)]
 pub struct ChainGeneratorFactory;
 
-impl<R> Named<BoxedGenerator<R>> for ChainGeneratorFactory {
+impl<R> NamedParam<BoxedGenerator<R>> for ChainGeneratorFactory {
     fn name(&self) -> &'static str {
         "chain"
     }

@@ -1,10 +1,14 @@
 use super::{BoxedLinker, Linker};
-use crate::{graph::InterGraphEdge, utils::Named};
+use crate::{graph::InterGraphEdge, utils::NamedParam};
 use anyhow::{anyhow, Context, Result};
 
+/// A linker that connects first nodes.
+///
+/// Such linker can be created by passing `f2f` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
+#[derive(Default)]
 pub struct FirstToFirstLinker;
 
-impl Named<BoxedLinker> for FirstToFirstLinker {
+impl NamedParam<BoxedLinker> for FirstToFirstLinker {
     fn name(&self) -> &'static str {
         "f2f"
     }
@@ -20,9 +24,12 @@ impl Named<BoxedLinker> for FirstToFirstLinker {
 
 impl Linker for FirstToFirstLinker {}
 
+/// A bidirectional linker that connects first nodes.
+///
+/// Such linker can be created by passing `f2f_bi` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
 pub struct BidirectionalFirstToFirstLinker;
 
-impl Named<BoxedLinker> for BidirectionalFirstToFirstLinker {
+impl NamedParam<BoxedLinker> for BidirectionalFirstToFirstLinker {
     fn name(&self) -> &'static str {
         "f2f_bi"
     }

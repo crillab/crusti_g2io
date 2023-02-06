@@ -7,6 +7,10 @@ description = "A Graph Generator following an Inner/Outer pattern"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "crusti_g2io"
+path = "src/lib.rs"
+
 [[bin]]
 name = "crusti_g2io"
 path = "src/main.rs"

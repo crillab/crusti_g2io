@@ -1,8 +1,11 @@
-use std::{io::{self, Write}, fs::File};
 use super::logging_level_arg;
-use crate::{generators, graph::Graph, linkers};
 use anyhow::{Context, Result};
-use crusti_app_helper::{App, AppSettings, Arg, ArgMatches, Command, SubCommand, info};
+use crusti_app_helper::{info, App, AppSettings, Arg, ArgMatches, Command, SubCommand};
+use crusti_g2io::{generators, linkers, Graph};
+use std::{
+    fs::File,
+    io::{self, Write},
+};
 
 const CMD_NAME: &str = "generate";
 
@@ -71,7 +74,7 @@ impl<'a> Command<'a> for GenerateCommand {
                     .long("save")
                     .empty_values(false)
                     .multiple(false)
-                    .help("save the graph to the file instead of printing it")
+                    .help("save the graph to the file instead of printing it"),
             )
             .arg(logging_level_arg())
     }
@@ -92,7 +95,11 @@ impl<'a> Command<'a> for GenerateCommand {
             linker.as_ref(),
             &mut rng,
         );
-        info!("generated a graph with {} nodes and {} edges", g.n_nodes(), g.n_edges());
+        info!(
+            "generated a graph with {} nodes and {} edges",
+            g.n_nodes(),
+            g.n_edges()
+        );
         let mut out: Box<dyn Write> = match arg_matches.value_of(ARG_SAVE_TO_FILE) {
             None => Box::new(io::stdout()),
             Some(path) => Box::new(File::create(path).context("while creating the output file")?),
@@ -101,7 +108,8 @@ impl<'a> Command<'a> for GenerateCommand {
             "dot" => writeln!(&mut out, "{}", g.to_dot_display()),
             "graphml" => writeln!(&mut out, "{}", g.to_graphml_display()),
             _ => unreachable!(),
-        }.context("while writing the graph")?;
+        }
+        .context("while writing the graph")?;
         Ok(())
     }
 }

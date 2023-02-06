@@ -1,9 +1,4 @@
 mod commands;
-mod display;
-mod generators;
-mod graph;
-mod linkers;
-mod utils;
 
 use commands::{GenerateCommand, GeneratorsCommand, LinkersCommand};
 use crusti_app_helper::{AppHelper, Command};

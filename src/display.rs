@@ -4,10 +4,12 @@ use petgraph_graphml::GraphMl;
 use std::fmt::Display;
 
 impl Graph {
+    /// Returns an object used to display the graph using the [GraphML format](https://en.wikipedia.org/wiki/GraphML).
     pub fn to_graphml_display(&self) -> GraphMLDisplay {
         GraphMLDisplay(self)
     }
 
+    /// Returns an object used to display the graph using the [Graphviz DOT format](https://graphviz.org/doc/info/lang.html).
     pub fn to_dot_display(&self) -> DotDisplay {
         DotDisplay(self)
     }

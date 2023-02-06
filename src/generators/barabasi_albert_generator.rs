@@ -1,12 +1,21 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::utils::{self, Named};
+use crate::utils::{self, NamedParam};
 use anyhow::{anyhow, Context, Result};
 use petgraph_gen::barabasi_albert_graph;
 use rand::Rng;
 
+/// A factory used to build generators for [Barabási-Albert](https://en.wikipedia.org/wiki/Barab%C3%A1si%E2%80%93Albert_model) graphs.
+///
+/// Such factories can be created by passing `ba/n,m` to [`generators::generator_factory_from_str`](crate::generators#generator_factory_from_str) where
+///   - `n` is the size of graph to produce;
+///   - `m` is the size of the graph used for the initialization step.
+///
+/// Graphs used for initialization are star graphs.
+/// Both parameters must be higher than zero, and `n` must be higher than `m`.
+#[derive(Default)]
 pub struct BarabasiAlbertGeneratorFactory;
 
-impl<R> Named<BoxedGenerator<R>> for BarabasiAlbertGeneratorFactory
+impl<R> NamedParam<BoxedGenerator<R>> for BarabasiAlbertGeneratorFactory
 where
     R: Rng,
 {
@@ -15,7 +24,10 @@ where
     }
 
     fn description(&self) -> Vec<&'static str> {
-        vec!["A generator following the Barabási-Albert model, initialized by a star graph.","First parameter gives the number of nodes of the graph, while the second one gives the number of nodes of the initial star graph."]
+        vec![
+            "A generator following the Barabási-Albert model, initialized by a star graph.",
+            "First parameter gives the number of nodes of the graph, while the second one gives the number of nodes of the initial star graph."
+        ]
     }
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {

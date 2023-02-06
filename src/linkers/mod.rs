@@ -1,16 +1,36 @@
+//! A module dedicated to linkers.
+//!
+//! Linkers choose how are ade the links between inner graphs.
+//!
+//! ```
+//! # use crusti_g2io::linkers;
+//! // building a linker that links the first nodes on each graph together.
+//! let linker = linkers::linker_from_str("f2f_bi").unwrap();
+//! // the linker can then be used to link graphs
+//! ```
+
 mod first_to_first;
 pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 
 use crate::{
     graph::{Graph, InterGraphEdge},
-    utils::{self, Named},
+    utils::{self, NamedParam},
 };
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 
+/// A boxed function that take two graphs and return a set of edges that can be used to link them.
+/// The choice of the edges depends on the implementation of the linker.
+///
+/// ```
+/// # use crusti_g2io::linkers;
+/// // getting a boxed linker from a string
+/// let linker = linkers::linker_from_str("f2f").unwrap();
+/// ```
 pub type BoxedLinker = Box<dyn Fn(&Graph, &Graph) -> Vec<InterGraphEdge>>;
 
-pub trait Linker: Named<BoxedLinker> {}
+/// A trait for objects that are used to link inner graphs.
+pub trait Linker: NamedParam<BoxedLinker> {}
 
 lazy_static! {
     pub(crate) static ref LINKERS: [Box<dyn Linker + Sync>; 2] = [
@@ -19,6 +39,26 @@ lazy_static! {
     ];
 }
 
+/// Iterates over all the linkers.
+///
+/// ```
+/// # use crusti_g2io::linkers;
+/// linkers::iter_linkers().enumerate().for_each(|(i,l)| {
+///     println!(r#"linker {} has name "{}""#, i, l.name());
+/// });
+/// ```
+pub fn iter_linkers() -> impl Iterator<Item = &'static (dyn Linker + Sync + 'static)> + 'static {
+    LINKERS.iter().map(|b| b.as_ref())
+}
+
+/// Given a string representing a parameterized linker, returns the corresponding object.
+///
+/// ```
+/// # use crusti_g2io::linkers;
+/// assert!(linkers::linker_from_str("f2f").is_ok()); // OK
+/// assert!(linkers::linker_from_str("f2f/1").is_err()); // wrong parameters
+/// assert!(linkers::linker_from_str("foo").is_err()); // unknown linker
+/// ```
 pub fn linker_from_str(s: &str) -> Result<BoxedLinker> {
     utils::named_from_str(LINKERS.as_slice(), s).context("while building a linker from a string")
 }
