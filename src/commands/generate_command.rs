@@ -5,7 +5,7 @@ use crusti_g2io::{generators, linkers, Graph};
 use rand::SeedableRng;
 use std::{
     fs::File,
-    io::{self, Write},
+    io::{self, BufWriter, Write},
 };
 
 const CMD_NAME: &str = "generate";
@@ -117,10 +117,11 @@ impl<'a> Command<'a> for GenerateCommand {
             g.n_nodes(),
             g.n_edges()
         );
-        let mut out: Box<dyn Write> = match arg_matches.value_of(ARG_EXPORT_TO_FILE) {
+        let unbuffered_out: Box<dyn Write> = match arg_matches.value_of(ARG_EXPORT_TO_FILE) {
             None => Box::new(io::stdout()),
             Some(path) => Box::new(File::create(path).context("while creating the output file")?),
         };
+        let mut out = BufWriter::new(unbuffered_out);
         match arg_matches.value_of(ARG_GRAPH_FORMAT).unwrap() {
             "dot" => writeln!(&mut out, "{}", g.to_dot_display()),
             "graphml" => writeln!(&mut out, "{}", g.to_graphml_display()),
