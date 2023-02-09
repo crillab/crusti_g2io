@@ -79,7 +79,10 @@ mod tests {
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
         let linker = FirstToFirstLinker.try_with_params("").unwrap();
-        assert_eq!(vec![InterGraphEdge::FirstToSecond(0, 0)], linker(&g0, &g1));
+        assert_eq!(
+            vec![InterGraphEdge::FirstToSecond(0, 0)],
+            linker((0, &g0).into(), (1, &g1).into())
+        );
     }
 
     #[test]
@@ -101,7 +104,7 @@ mod tests {
                 InterGraphEdge::FirstToSecond(0, 0),
                 InterGraphEdge::SecondToFirst(0, 0)
             ],
-            linker(&g0, &g1)
+            linker((0, &g0).into(), (1, &g1).into())
         );
     }
 }

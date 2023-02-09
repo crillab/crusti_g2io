@@ -1,5 +1,6 @@
 mod graph;
 pub use graph::Graph;
+pub use graph::InnerGraph;
 pub use graph::InterGraphEdge;
 pub use graph::NodeIndexType;
 

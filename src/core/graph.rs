@@ -91,7 +91,7 @@ impl Graph {
     where
         F: Fn(&mut R) -> Graph,
         G: Fn(&mut R) -> Graph,
-        H: Fn(&Graph, &Graph) -> Vec<InterGraphEdge>,
+        H: Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge>,
         R: Rng,
     {
         let outer = (outer_graph_builder)(rng);
@@ -114,7 +114,10 @@ impl Graph {
                     v
                 });
         outer.iter_edges().for_each(|outer_edge| {
-            let inter_attacks = (linker)(&inner_graphs[outer_edge.0], &inner_graphs[outer_edge.1]);
+            let inter_attacks = (linker)(
+                (outer_edge.0, &inner_graphs[outer_edge.0]).into(),
+                (outer_edge.1, &inner_graphs[outer_edge.1]).into(),
+            );
             inter_attacks.iter().for_each(|inter_edge| {
                 let global_node_ids = match inter_edge {
                     InterGraphEdge::FirstToSecond(a, b) => (
@@ -220,6 +223,35 @@ impl Graph {
     }
 }
 
+/// A structure used to store an inner graph.
+///
+/// Its main purpose is to associate an index to a graph, allowing linkers to cache data.
+pub struct InnerGraph<'a> {
+    index: usize,
+    graph: &'a Graph,
+}
+
+impl InnerGraph<'_> {
+    /// Returns the index of the inner graph.
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// Returns the inner graph.
+    pub fn graph(&self) -> &Graph {
+        self.graph
+    }
+}
+
+impl<'a> From<(usize, &'a Graph)> for InnerGraph<'a> {
+    fn from(t: (usize, &'a Graph)) -> Self {
+        Self {
+            index: t.0,
+            graph: t.1,
+        }
+    }
+}
+
 impl From<petgraph::Graph<(), (), Directed, NodeIndexType>> for Graph {
     fn from(g: petgraph::Graph<(), (), Directed, NodeIndexType>) -> Self {
         Self(g)
@@ -298,7 +330,7 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: &Graph, _: &Graph| vec![InterGraphEdge::FirstToSecond(0, 0)];
+            |_: InnerGraph, _: InnerGraph| vec![InterGraphEdge::FirstToSecond(0, 0)];
         let inner_outer = Graph::new_inner_outer(
             chain_builder,
             circle_builder,
@@ -332,7 +364,7 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: &Graph, _: &Graph| vec![InterGraphEdge::SecondToFirst(0, 0)];
+            |_: InnerGraph, _: InnerGraph| vec![InterGraphEdge::SecondToFirst(0, 0)];
         let inner_outer = Graph::new_inner_outer(
             chain_builder,
             circle_builder,

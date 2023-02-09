@@ -15,7 +15,10 @@ pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 mod min_incoming;
 pub use min_incoming::{BidirectionalSourcesLinker, MinIncomingLinker};
 
-use crate::{core::named_param, Graph, InterGraphEdge, NamedParam};
+use crate::{
+    core::{named_param, InnerGraph},
+    InterGraphEdge, NamedParam,
+};
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 
@@ -27,7 +30,7 @@ use lazy_static::lazy_static;
 /// // getting a boxed linker from a string
 /// let linker = linkers::linker_from_str("f2f").unwrap();
 /// ```
-pub type BoxedLinker = Box<dyn Fn(&Graph, &Graph) -> Vec<InterGraphEdge>>;
+pub type BoxedLinker = Box<dyn Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge>>;
 
 /// A trait for objects that are used to link inner graphs.
 pub trait Linker: NamedParam<BoxedLinker> {}
