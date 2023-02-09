@@ -67,7 +67,7 @@ impl<'a> Command<'a> for GenerateCommand {
                     .long("format")
                     .multiple(false)
                     .default_value("dot")
-                    .possible_values(&["dot", "graphml"])
+                    .possible_values(&["dot", "graphml", "dimacs"])
                     .help("the output format used for graphs"),
             )
             .arg(
@@ -125,6 +125,7 @@ impl<'a> Command<'a> for GenerateCommand {
         match arg_matches.value_of(ARG_GRAPH_FORMAT).unwrap() {
             "dot" => writeln!(&mut out, "{}", g.to_dot_display()),
             "graphml" => writeln!(&mut out, "{}", g.to_graphml_display()),
+            // "dimacs" => writeln!(&mut out, "{}", g.to_dimacs_display()),
             _ => unreachable!(),
         }
         .context("while writing the graph")?;
