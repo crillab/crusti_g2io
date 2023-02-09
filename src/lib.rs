@@ -8,6 +8,8 @@ pub use crate::core::InterGraphEdge;
 pub use crate::core::NamedParam;
 pub use crate::core::NodeIndexType;
 
+mod display;
+
 pub mod generators;
 pub use generators::BarabasiAlbertGeneratorFactory;
 pub use generators::ChainGeneratorFactory;
