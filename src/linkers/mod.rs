@@ -12,6 +12,9 @@
 mod first_to_first;
 pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 
+mod min_incoming;
+pub use min_incoming::{BidirectionalSourcesLinker, MinIncomingLinker};
+
 use crate::{core::named_param, Graph, InterGraphEdge, NamedParam};
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
