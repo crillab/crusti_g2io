@@ -125,7 +125,7 @@ impl<'a> Command<'a> for GenerateCommand {
         match arg_matches.value_of(ARG_GRAPH_FORMAT).unwrap() {
             "dot" => writeln!(&mut out, "{}", g.to_dot_display()),
             "graphml" => writeln!(&mut out, "{}", g.to_graphml_display()),
-            // "dimacs" => writeln!(&mut out, "{}", g.to_dimacs_display()),
+            "dimacs" => writeln!(&mut out, "{}", g.to_dimacs_display()),
             _ => unreachable!(),
         }
         .context("while writing the graph")?;

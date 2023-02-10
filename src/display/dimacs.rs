@@ -12,7 +12,10 @@ pub struct DimacsDisplay<'a>(&'a Graph);
 
 impl Display for DimacsDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let dimacs_display = (write("coucou"));
-        std::fmt::Debug::fmt(&dimacs_display, f)
+        writeln!(f, "p af {}", self.0.n_nodes())?;
+        for e in self.0.iter_edges() {
+            writeln!(f, "{} {}", e.0 + 1, e.1 + 1)?;
+        }
+        Ok(())
     }
 }
