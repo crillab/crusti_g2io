@@ -24,6 +24,8 @@ pub use chain_generator::ChainGeneratorFactory;
 
 mod erdos_renyi;
 pub use erdos_renyi::ErdosRenyiGeneratorFactory;
+mod tree_generator;
+pub use tree_generator::TreeGeneratorFactory;
 
 use crate::{core::named_param, Graph, NamedParam};
 use anyhow::{Context, Result};
@@ -54,10 +56,11 @@ where
 }
 
 lazy_static! {
-    pub(crate) static ref FACTORIES_THREAD_PCG32: [Box<dyn GeneratorFactory<Pcg32> + Sync>; 3] = [
+    pub(crate) static ref FACTORIES_THREAD_PCG32: [Box<dyn GeneratorFactory<Pcg32> + Sync>; 4] = [
         Box::new(BarabasiAlbertGeneratorFactory),
         Box::new(ChainGeneratorFactory),
         Box::new(ErdosRenyiGeneratorFactory),
+        Box::new(TreeGeneratorFactory),
     ];
 }
 

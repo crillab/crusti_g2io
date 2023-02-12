@@ -13,6 +13,7 @@ mod display;
 pub mod generators;
 pub use generators::BarabasiAlbertGeneratorFactory;
 pub use generators::ChainGeneratorFactory;
+pub use generators::TreeGeneratorFactory;
 
 pub mod linkers;
 pub use linkers::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
