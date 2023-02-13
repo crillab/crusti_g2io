@@ -5,7 +5,7 @@
 //! ```
 //! # use crusti_g2io::linkers;
 //! // building a linker that links the first nodes on each graph together.
-//! let linker = linkers::linker_from_str("f2f_bi").unwrap();
+//! let linker = linkers::linker_from_str("first_bi").unwrap();
 //! // the linker can then be used to link graphs
 //! ```
 
@@ -28,7 +28,7 @@ use lazy_static::lazy_static;
 /// ```
 /// # use crusti_g2io::linkers;
 /// // getting a boxed linker from a string
-/// let linker = linkers::linker_from_str("f2f").unwrap();
+/// let linker = linkers::linker_from_str("first").unwrap();
 /// ```
 pub type BoxedLinker = Box<dyn Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge>>;
 
@@ -58,8 +58,8 @@ pub fn iter_linkers() -> impl Iterator<Item = &'static (dyn Linker + Sync + 'sta
 ///
 /// ```
 /// # use crusti_g2io::linkers;
-/// assert!(linkers::linker_from_str("f2f").is_ok()); // OK
-/// assert!(linkers::linker_from_str("f2f/1").is_err()); // wrong parameters
+/// assert!(linkers::linker_from_str("first").is_ok()); // OK
+/// assert!(linkers::linker_from_str("first/1").is_err()); // wrong parameters
 /// assert!(linkers::linker_from_str("foo").is_err()); // unknown linker
 /// ```
 pub fn linker_from_str(s: &str) -> Result<BoxedLinker> {
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_linker_ok() {
-        assert!(linker_from_str("f2f").is_ok());
+        assert!(linker_from_str("first").is_ok());
     }
 
     #[test]
@@ -83,6 +83,6 @@ mod tests {
 
     #[test]
     fn test_linker_too_much_params() {
-        assert!(linker_from_str("f2f/1").is_err());
+        assert!(linker_from_str("first/1").is_err());
     }
 }

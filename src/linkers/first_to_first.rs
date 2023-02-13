@@ -4,13 +4,13 @@ use anyhow::{anyhow, Context, Result};
 
 /// A linker that connects first nodes.
 ///
-/// Such linker can be created by passing `f2f` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
+/// Such linker can be created by passing `first` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
 #[derive(Default)]
 pub struct FirstToFirstLinker;
 
 impl NamedParam<BoxedLinker> for FirstToFirstLinker {
     fn name(&self) -> &'static str {
-        "f2f"
+        "first"
     }
 
     fn description(&self) -> Vec<&'static str> {
@@ -26,12 +26,12 @@ impl Linker for FirstToFirstLinker {}
 
 /// A bidirectional linker that connects first nodes.
 ///
-/// Such linker can be created by passing `f2f_bi` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
+/// Such linker can be created by passing `first_bi` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
 pub struct BidirectionalFirstToFirstLinker;
 
 impl NamedParam<BoxedLinker> for BidirectionalFirstToFirstLinker {
     fn name(&self) -> &'static str {
-        "f2f_bi"
+        "first_bi"
     }
 
     fn description(&self) -> Vec<&'static str> {
