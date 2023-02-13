@@ -31,10 +31,10 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
         let context = "while building an Erdős–Rényi generator";
-        let (n, p) =
-            utils::str_param_to_positive_integer_and_probability(params).context(context)?;
+        let (v, p) =
+            utils::str_param_to_positive_integers_and_probability(params, 1).context(context)?;
         Ok(Box::new(move |r| {
-            petgraph_gen::random_gnp_graph(r, n, p).into()
+            petgraph_gen::random_gnp_graph(r, v[0], p).into()
         }))
     }
 }

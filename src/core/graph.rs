@@ -40,7 +40,7 @@ pub struct Graph(petgraph::Graph<(), (), Directed, NodeIndexType>);
 
 /// An edge between the nodes of two different graphs.
 ///
-/// The edge if defined by its direction (from the first graph to the second, or from the second to the first)
+/// The edge is defined by its direction (from the first graph to the second, or from the second to the first)
 /// and the labels of the nodes involved in the edge.
 #[derive(Debug, PartialEq, Eq)]
 pub enum InterGraphEdge {
@@ -53,7 +53,7 @@ pub enum InterGraphEdge {
 impl Graph {
     /// Builds a new graph with an initial capacity for nodes and edges.
     ///
-    /// These capacity are only size hints ; they can improve performance but a graph built by this method can handle any number of nodes and edges.
+    /// These capacity are only size hints; they can improve performance but a graph built by this method can handle any number of nodes and edges.
     pub fn with_capacity(n_nodes: usize, n_edges: usize) -> Self {
         Self(petgraph::Graph::with_capacity(n_nodes, n_edges))
     }
@@ -157,7 +157,7 @@ impl Graph {
 
     /// Adds an edge to the graph.
     ///
-    /// If one of the node involved in the edge is not defined yet, this functions adds it the the graph
+    /// If one of the nodes involved in the edge is not defined yet, this functions adds it the the graph
     /// and defines all the missing nodes which have a label between 0 and the label of the new node.
     ///
     /// ```
@@ -183,7 +183,7 @@ impl Graph {
         self.0.edge_count()
     }
 
-    /// Returns an iterator to the edges of this node.
+    /// Returns an iterator to the edges of this graph.
     ///
     /// Edges are given as couples of labels.
     ///
@@ -200,6 +200,19 @@ impl Graph {
             .raw_edges()
             .iter()
             .map(|e| (e.source().index(), e.target().index()))
+    }
+
+    /// Removes the edges given its source and target nodes.
+    ///
+    /// # Panics
+    ///
+    /// If the provided source and target do not match any edge, this function panics.
+    pub fn remove_edge(&mut self, from: NodeIndexType, to: NodeIndexType) {
+        let index = self
+            .0
+            .find_edge(from.into(), to.into())
+            .unwrap_or_else(|| panic!("no such edge (from {} to {})", from, to));
+        self.0.remove_edge(index).unwrap();
     }
 
     fn append_graph(&mut self, g: &Graph) {
