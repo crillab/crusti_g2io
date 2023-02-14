@@ -1,7 +1,7 @@
 use super::logging_level_arg;
 use anyhow::{Context, Result};
 use crusti_app_helper::{info, App, AppSettings, Arg, ArgMatches, Command, SubCommand};
-use crusti_g2io::{generators, linkers, Graph};
+use crusti_g2io::{generators, linkers, InnerOuterGenerationStep, InnerOuterGenerator};
 use rand::SeedableRng;
 use std::{
     fs::File,
@@ -106,7 +106,17 @@ impl<'a> Command<'a> for GenerateCommand {
         };
         info!("random seed is {}", seed);
         let mut rng = rand_pcg::Pcg32::seed_from_u64(seed);
-        let g = Graph::new_inner_outer(
+        let mut inner_outer_generator = InnerOuterGenerator::default();
+        inner_outer_generator.add_generation_step_listener(Box::new(|step| match step {
+            InnerOuterGenerationStep::OuterGeneration => {
+                info!("beginning the outer graph generation")
+            }
+            InnerOuterGenerationStep::InnerGeneration => {
+                info!("beginning the inner graphs generation")
+            }
+            InnerOuterGenerationStep::Linking => info!("beginning the linking"),
+        }));
+        let g = inner_outer_generator.new_inner_outer(
             outer_generator.as_ref(),
             inner_generator.as_ref(),
             linker.as_ref(),

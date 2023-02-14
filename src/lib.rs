@@ -4,6 +4,8 @@
 
 mod core;
 pub use crate::core::Graph;
+pub use crate::core::InnerOuterGenerationStep;
+pub use crate::core::InnerOuterGenerator;
 pub use crate::core::InterGraphEdge;
 pub use crate::core::NamedParam;
 pub use crate::core::NodeIndexType;
