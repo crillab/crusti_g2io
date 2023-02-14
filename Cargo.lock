@@ -189,10 +189,10 @@ dependencies = [
  "petgraph",
  "petgraph-gen",
  "petgraph-graphml",
- "queues",
  "rand",
  "rand_core",
  "rand_pcg",
+ "rayon",
 ]
 
 [[package]]
@@ -467,12 +467,6 @@ checksum = "6ef7d57beacfaf2d8aee5937dab7b7f28de3cb8b1828479bb5de2a7106f2bae2"
 dependencies = [
  "unicode-ident",
 ]
-
-[[package]]
-name = "queues"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1475abae4f8ad4998590fe3acfe20104f0a5d48fc420c817cd2c09c3f56151f0"
 
 [[package]]
 name = "quote"

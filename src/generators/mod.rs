@@ -50,7 +50,7 @@ use rand_pcg::Pcg32;
 /// let generator = generators::generator_factory_from_str("chain/3").unwrap();
 /// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
-pub type BoxedGenerator<R> = Box<dyn Fn(&mut R) -> Graph>;
+pub type BoxedGenerator<R> = Box<dyn Fn(&mut R) -> Graph + Sync + Send>;
 
 /// A trait for objects that produce graph generators.
 pub trait GeneratorFactory<R>: NamedParam<BoxedGenerator<R>>

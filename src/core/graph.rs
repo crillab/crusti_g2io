@@ -1,6 +1,8 @@
 use petgraph::graph::NodeIndex;
 use petgraph::Directed;
-use rand::Rng;
+use rand::distributions::Standard;
+use rand::{Rng, SeedableRng};
+use rayon::prelude::*;
 
 /// The node label type
 pub type NodeIndexType = usize;
@@ -66,12 +68,15 @@ impl Graph {
     ///
     /// ```
     /// # use crusti_g2io::{Graph, ChainGeneratorFactory, InterGraphEdge, NodeIndexType, FirstToFirstLinker, NamedParam};
+    /// use rand::SeedableRng;
+    /// use rand_pcg::Pcg32;
+    ///
     /// let first_node_edge_selector = FirstToFirstLinker::default().try_with_params("").unwrap();
     /// let inner_outer = Graph::new_inner_outer(
     ///     ChainGeneratorFactory::default().try_with_params("2").unwrap(),
     ///     ChainGeneratorFactory::default().try_with_params("3").unwrap(),
     ///     first_node_edge_selector,
-    ///     &mut rand::thread_rng(),
+    ///     &mut Pcg32::from_entropy(),
     /// );
     /// let mut expected = inner_outer
     ///     .iter_edges()
@@ -90,13 +95,16 @@ impl Graph {
     ) -> Self
     where
         F: Fn(&mut R) -> Graph,
-        G: Fn(&mut R) -> Graph,
+        G: Fn(&mut R) -> Graph + Sync + Send,
         H: Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge>,
-        R: Rng,
+        R: Rng + SeedableRng + Send,
     {
         let outer = (outer_graph_builder)(rng);
-        let inner_graphs = (0..outer.n_nodes())
-            .map(|_| (inner_graph_builder)(rng))
+        let inner_seeds: Vec<u64> = rng.sample_iter(Standard).take(outer.n_nodes()).collect();
+        let inner_graphs = inner_seeds
+            .into_par_iter()
+            .map(|s| R::seed_from_u64(s))
+            .map(|mut r| inner_graph_builder(&mut r))
             .collect::<Vec<Graph>>();
         let mut global_graph = Graph::default();
         inner_graphs
@@ -273,8 +281,9 @@ impl From<petgraph::Graph<(), (), Directed, NodeIndexType>> for Graph {
 
 #[cfg(test)]
 mod tests {
+    use rand_pcg::Pcg32;
+
     use super::*;
-    use rand::rngs::ThreadRng;
 
     #[test]
     pub fn test_new_edge_adds_node() {
@@ -328,7 +337,7 @@ mod tests {
 
     #[test]
     fn test_inner_outer() {
-        let circle_builder = |_: &mut ThreadRng| {
+        let circle_builder = |_: &mut Pcg32| {
             const N: usize = 3;
             let mut g = Graph::with_capacity(N, N);
             for i in 0..N - 1 {
@@ -337,7 +346,7 @@ mod tests {
             g.new_edge(N - 1, 0);
             g
         };
-        let chain_builder = |_: &mut ThreadRng| {
+        let chain_builder = |_: &mut Pcg32| {
             let mut g = Graph::with_capacity(2, 1);
             g.new_edge(0, 1);
             g
@@ -348,7 +357,7 @@ mod tests {
             chain_builder,
             circle_builder,
             first_node_edge_selector,
-            &mut rand::thread_rng(),
+            &mut Pcg32::seed_from_u64(0),
         );
         let mut expected = inner_outer
             .iter_edges()
@@ -362,7 +371,7 @@ mod tests {
 
     #[test]
     fn test_inner_inv_outer() {
-        let circle_builder = |_: &mut ThreadRng| {
+        let circle_builder = |_: &mut Pcg32| {
             const N: usize = 3;
             let mut g = Graph::with_capacity(N, N);
             for i in 0..N - 1 {
@@ -371,7 +380,7 @@ mod tests {
             g.new_edge(N - 1, 0);
             g
         };
-        let chain_builder = |_: &mut ThreadRng| {
+        let chain_builder = |_: &mut Pcg32| {
             let mut g = Graph::with_capacity(2, 1);
             g.new_edge(0, 1);
             g
@@ -382,7 +391,7 @@ mod tests {
             chain_builder,
             circle_builder,
             first_node_edge_selector,
-            &mut rand::thread_rng(),
+            &mut Pcg32::seed_from_u64(0),
         );
         let mut expected = inner_outer
             .iter_edges()
