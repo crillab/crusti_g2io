@@ -1,15 +1,16 @@
-use std::{cell::RefCell, rc::Rc};
-
 use super::{BoxedLinker, Linker};
 use crate::{core::InnerGraph, InterGraphEdge, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use std::sync::{Arc, Mutex};
+
+pub type Cache = Arc<Mutex<Vec<Option<Vec<usize>>>>>;
 
 /// A linker that connects graph by targeting their nodes with the lowest incoming edges.
 ///
 /// Such linker can be created by passing `min_incoming` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
 #[derive(Default)]
 pub struct MinIncomingLinker {
-    min_incoming_cache: Rc<RefCell<Vec<Option<Vec<usize>>>>>,
+    min_incoming_cache: Cache,
 }
 
 impl NamedParam<BoxedLinker> for MinIncomingLinker {
@@ -22,7 +23,7 @@ impl NamedParam<BoxedLinker> for MinIncomingLinker {
     }
 
     fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {
-        try_with_params(params, Rc::clone(&self.min_incoming_cache), false)
+        try_with_params(params, Arc::clone(&self.min_incoming_cache), false)
     }
 }
 
@@ -32,11 +33,11 @@ impl Linker for MinIncomingLinker {}
 ///
 /// Such linker can be created by passing `min_incoming_bi` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
 #[derive(Default)]
-pub struct BidirectionalSourcesLinker {
-    min_incoming_cache: Rc<RefCell<Vec<Option<Vec<usize>>>>>,
+pub struct BidirectionalMinIncomingLinker {
+    min_incoming_cache: Cache,
 }
 
-impl NamedParam<BoxedLinker> for BidirectionalSourcesLinker {
+impl NamedParam<BoxedLinker> for BidirectionalMinIncomingLinker {
     fn name(&self) -> &'static str {
         "min_incoming_bi"
     }
@@ -46,15 +47,15 @@ impl NamedParam<BoxedLinker> for BidirectionalSourcesLinker {
     }
 
     fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {
-        try_with_params(params, Rc::clone(&self.min_incoming_cache), true)
+        try_with_params(params, Arc::clone(&self.min_incoming_cache), true)
     }
 }
 
-impl Linker for BidirectionalSourcesLinker {}
+impl Linker for BidirectionalMinIncomingLinker {}
 
 fn try_with_params(
     params: &str,
-    min_incoming_cache: Rc<RefCell<Vec<Option<Vec<usize>>>>>,
+    min_incoming_cache: Cache,
     bidirectional: bool,
 ) -> Result<BoxedLinker> {
     let context = "while building a sources linker";
@@ -62,36 +63,29 @@ fn try_with_params(
         return Err(anyhow!("unexpected parameter(s)")).context(context);
     }
     Ok(Box::new(move |g1, g2| {
-        compute_min_incoming(&g1, Rc::clone(&min_incoming_cache));
-        compute_min_incoming(&g2, Rc::clone(&min_incoming_cache));
+        let min_incoming_1 = compute_min_incoming(&g1, Arc::clone(&min_incoming_cache));
+        let min_incoming_2 = compute_min_incoming(&g2, Arc::clone(&min_incoming_cache));
         let mut links = Vec::new();
-        min_incoming_cache.borrow()[g1.index()]
-            .as_ref()
-            .unwrap()
-            .iter()
-            .for_each(|n1| {
-                min_incoming_cache.borrow()[g2.index()]
-                    .as_ref()
-                    .unwrap()
-                    .iter()
-                    .for_each(|n2| {
-                        links.push(InterGraphEdge::FirstToSecond(*n1, *n2));
-                        if bidirectional {
-                            links.push(InterGraphEdge::SecondToFirst(*n2, *n1));
-                        }
-                    });
+        min_incoming_1.iter().for_each(|n1| {
+            min_incoming_2.iter().for_each(|n2| {
+                links.push(InterGraphEdge::FirstToSecond(*n1, *n2));
+                if bidirectional {
+                    links.push(InterGraphEdge::SecondToFirst(*n2, *n1));
+                }
             });
+        });
         links
     }))
 }
 
-fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Rc<RefCell<Vec<Option<Vec<usize>>>>>) {
-    if min_incoming_cache.borrow().len() <= g.index() {
-        min_incoming_cache.borrow_mut().resize(1 + g.index(), None)
-    };
-    if min_incoming_cache.borrow()[g.index()].is_some() {
-        return;
+fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Cache) -> Vec<usize> {
+    let mut cache_handle = min_incoming_cache.lock().unwrap();
+    if cache_handle.len() <= g.index() {
+        cache_handle.resize(1 + g.index(), None);
+    } else if let Some(v) = &cache_handle[g.index()] {
+        return v.clone();
     }
+    std::mem::drop(cache_handle);
     let mut n_incoming = vec![0; g.graph().n_nodes()];
     g.graph().iter_edges().for_each(|(_, i)| {
         n_incoming[i] += 1;
@@ -102,7 +96,9 @@ fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Rc<RefCell<Vec<Optio
         .enumerate()
         .filter_map(|(i, n)| if n == min_n_incoming { Some(i) } else { None })
         .collect::<Vec<usize>>();
-    min_incoming_cache.borrow_mut()[g.index()] = Some(v);
+    let some_v_clone = Some(v.clone());
+    min_incoming_cache.lock().unwrap()[g.index()] = some_v_clone;
+    v
 }
 
 #[cfg(test)]
@@ -134,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_min_incoming_bi_too_much_params() {
-        assert!(BidirectionalSourcesLinker::default()
+        assert!(BidirectionalMinIncomingLinker::default()
             .try_with_params("1")
             .is_err());
     }
@@ -146,7 +142,7 @@ mod tests {
         g0.new_node();
         let mut g1 = Graph::default();
         g1.new_edge(0, 1);
-        let linker = BidirectionalSourcesLinker::default()
+        let linker = BidirectionalMinIncomingLinker::default()
             .try_with_params("")
             .unwrap();
         assert_eq!(

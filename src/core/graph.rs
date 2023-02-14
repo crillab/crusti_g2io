@@ -97,7 +97,7 @@ impl Graph {
             self.0.add_node(());
         });
         self.0
-            .update_edge(NodeIndex::from(from), NodeIndex::from(to), ());
+            .add_edge(NodeIndex::from(from), NodeIndex::from(to), ());
     }
 
     /// Returns the number of edges contained in the graph.
