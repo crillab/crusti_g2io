@@ -60,7 +60,7 @@ impl InnerOuterGenerator {
     where
         F: Fn(&mut R) -> Graph,
         G: Fn(&mut R) -> Graph + Sync + Send,
-        H: Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge> + Sync,
+        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
         R: Rng + SeedableRng + Send,
     {
         let outer_graph = self.generate_outer_graph(outer_graph_builder, rng);
@@ -69,7 +69,7 @@ impl InnerOuterGenerator {
         inner_graphs
             .iter()
             .for_each(|g| global_graph.append_graph(g));
-        self.link(&outer_graph, &inner_graphs, linker)
+        self.link(&outer_graph, &inner_graphs, linker, rng)
     }
 
     fn generate_outer_graph<F, R>(&self, outer_graph_builder: F, rng: &mut R) -> Graph
@@ -107,9 +107,16 @@ impl InnerOuterGenerator {
             .collect()
     }
 
-    fn link<H>(&self, outer_graph: &Graph, inner_graphs: &[Graph], linker: H) -> Graph
+    fn link<H, R>(
+        &self,
+        outer_graph: &Graph,
+        inner_graphs: &[Graph],
+        linker: H,
+        rng: &mut R,
+    ) -> Graph
     where
-        H: Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge> + Sync,
+        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
+        R: Rng + SeedableRng + Send,
     {
         let mut global_graph = Graph::default();
         inner_graphs
@@ -135,25 +142,30 @@ impl InnerOuterGenerator {
             &cumulated_n_nodes,
             global_graph,
             linker,
+            rng,
         )
     }
 
-    fn add_linking_edges<H>(
+    fn add_linking_edges<H, R>(
         &self,
         outer_graph: &Graph,
         inner_graphs: &[Graph],
         cumulated_n_nodes: &[usize],
         mut global_graph: Graph,
         linker: H,
+        rng: &mut R,
     ) -> Graph
     where
-        H: Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge> + Sync,
+        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
+        R: Rng + SeedableRng + Send,
     {
-        let all_global_edges = outer_graph
-            .petgraph()
-            .raw_edges()
-            .par_iter()
-            .map(|petgraph_edge| {
+        let raw_edges = outer_graph.petgraph().raw_edges();
+        let seeds: Vec<u64> = rng.sample_iter(Standard).take(raw_edges.len()).collect();
+        let all_global_edges = (0..raw_edges.len())
+            .into_par_iter()
+            .map(|i| {
+                let petgraph_edge = &raw_edges[i];
+                let mut rng = R::seed_from_u64(seeds[i]);
                 let outer_edge = (
                     petgraph_edge.source().index(),
                     petgraph_edge.target().index(),
@@ -161,6 +173,7 @@ impl InnerOuterGenerator {
                 let inter_attacks = (linker)(
                     (outer_edge.0, &inner_graphs[outer_edge.0]).into(),
                     (outer_edge.1, &inner_graphs[outer_edge.1]).into(),
+                    &mut rng,
                 );
                 inter_attacks
                     .iter()
@@ -218,7 +231,7 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: InnerGraph, _: InnerGraph| vec![InterGraphEdge::FirstToSecond(0, 0)];
+            |_: InnerGraph, _: InnerGraph, _: &mut Pcg32| vec![InterGraphEdge::FirstToSecond(0, 0)];
         let inner_outer_generator = InnerOuterGenerator::default();
         let inner_outer = inner_outer_generator.new_inner_outer(
             chain_builder,
@@ -253,7 +266,7 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: InnerGraph, _: InnerGraph| vec![InterGraphEdge::SecondToFirst(0, 0)];
+            |_: InnerGraph, _: InnerGraph, _: &mut Pcg32| vec![InterGraphEdge::SecondToFirst(0, 0)];
         let inner_outer_generator = InnerOuterGenerator::default();
         let inner_outer = inner_outer_generator.new_inner_outer(
             chain_builder,

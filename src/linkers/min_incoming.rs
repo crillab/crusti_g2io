@@ -1,6 +1,7 @@
 use super::{BoxedLinker, Linker};
 use crate::{core::InnerGraph, InterGraphEdge, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use rand::Rng;
 use std::sync::{Arc, Mutex};
 
 pub type Cache = Arc<Mutex<Vec<Option<Vec<usize>>>>>;
@@ -13,7 +14,10 @@ pub struct MinIncomingLinker {
     min_incoming_cache: Cache,
 }
 
-impl NamedParam<BoxedLinker> for MinIncomingLinker {
+impl<R> NamedParam<BoxedLinker<R>> for MinIncomingLinker
+where
+    R: Rng,
+{
     fn name(&self) -> &'static str {
         "min_incoming"
     }
@@ -22,12 +26,12 @@ impl NamedParam<BoxedLinker> for MinIncomingLinker {
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
         try_with_params(params, Arc::clone(&self.min_incoming_cache), false)
     }
 }
 
-impl Linker for MinIncomingLinker {}
+impl<R> Linker<R> for MinIncomingLinker where R: Rng {}
 
 /// A bidirectional linker that connects graph by targeting their nodes with the lowest incoming edges.
 ///
@@ -37,7 +41,10 @@ pub struct BidirectionalMinIncomingLinker {
     min_incoming_cache: Cache,
 }
 
-impl NamedParam<BoxedLinker> for BidirectionalMinIncomingLinker {
+impl<R> NamedParam<BoxedLinker<R>> for BidirectionalMinIncomingLinker
+where
+    R: Rng,
+{
     fn name(&self) -> &'static str {
         "min_incoming_bi"
     }
@@ -46,23 +53,26 @@ impl NamedParam<BoxedLinker> for BidirectionalMinIncomingLinker {
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property, and vice-versa."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
         try_with_params(params, Arc::clone(&self.min_incoming_cache), true)
     }
 }
 
-impl Linker for BidirectionalMinIncomingLinker {}
+impl<R> Linker<R> for BidirectionalMinIncomingLinker where R: Rng {}
 
-fn try_with_params(
+fn try_with_params<R>(
     params: &str,
     min_incoming_cache: Cache,
     bidirectional: bool,
-) -> Result<BoxedLinker> {
+) -> Result<BoxedLinker<R>>
+where
+    R: Rng,
+{
     let context = "while building a sources linker";
     if !params.is_empty() {
         return Err(anyhow!("unexpected parameter(s)")).context(context);
     }
-    Ok(Box::new(move |g1, g2| {
+    Ok(Box::new(move |g1, g2, _| {
         let min_incoming_1 = compute_min_incoming(&g1, Arc::clone(&min_incoming_cache));
         let min_incoming_2 = compute_min_incoming(&g2, Arc::clone(&min_incoming_cache));
         let mut links = Vec::new();
@@ -105,10 +115,13 @@ fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Cache) -> Vec<usize>
 mod tests {
     use super::*;
     use crate::Graph;
+    use rand::rngs::ThreadRng;
 
     #[test]
     fn test_min_incoming_too_much_params() {
-        assert!(MinIncomingLinker::default().try_with_params("1").is_err());
+        assert!((MinIncomingLinker::default().try_with_params("1")
+            as Result<BoxedLinker<ThreadRng>>)
+            .is_err());
     }
 
     #[test]
@@ -124,15 +137,17 @@ mod tests {
                 InterGraphEdge::FirstToSecond(0, 0),
                 InterGraphEdge::FirstToSecond(1, 0)
             ],
-            linker((0, &g0).into(), (1, &g1).into())
+            linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
         );
     }
 
     #[test]
     fn test_min_incoming_bi_too_much_params() {
-        assert!(BidirectionalMinIncomingLinker::default()
-            .try_with_params("1")
-            .is_err());
+        assert!(
+            (BidirectionalMinIncomingLinker::default().try_with_params("1")
+                as Result<BoxedLinker<ThreadRng>>)
+                .is_err()
+        );
     }
 
     #[test]
@@ -152,7 +167,7 @@ mod tests {
                 InterGraphEdge::FirstToSecond(1, 0),
                 InterGraphEdge::SecondToFirst(0, 1),
             ],
-            linker((0, &g0).into(), (1, &g1).into())
+            linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
         );
     }
 }

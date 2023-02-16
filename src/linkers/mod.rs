@@ -15,12 +15,16 @@ pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
 mod min_incoming;
 pub use min_incoming::{BidirectionalMinIncomingLinker, MinIncomingLinker};
 
+mod random;
+pub use random::{BidirectionalRandomLinker, RandomLinker};
+
 use crate::{
     core::{named_param, InnerGraph},
     InterGraphEdge, NamedParam,
 };
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
+use rand_pcg::Pcg32;
 
 /// A boxed function that take two graphs and return a set of edges that can be used to link them.
 /// The choice of the edges depends on the implementation of the linker.
@@ -30,17 +34,19 @@ use lazy_static::lazy_static;
 /// // getting a boxed linker from a string
 /// let linker = linkers::linker_from_str("first").unwrap();
 /// ```
-pub type BoxedLinker = Box<dyn Fn(InnerGraph, InnerGraph) -> Vec<InterGraphEdge> + Sync>;
+pub type BoxedLinker<R> = Box<dyn Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync>;
 
 /// A trait for objects that are used to link inner graphs.
-pub trait Linker: NamedParam<BoxedLinker> {}
+pub trait Linker<R>: NamedParam<BoxedLinker<R>> {}
 
 lazy_static! {
-    pub(crate) static ref LINKERS: [Box<dyn Linker + Sync>; 4] = [
+    pub(crate) static ref LINKERS: [Box<dyn Linker<Pcg32> + Sync>; 6] = [
         Box::new(FirstToFirstLinker::default()),
         Box::new(BidirectionalFirstToFirstLinker::default()),
         Box::new(MinIncomingLinker::default()),
         Box::new(BidirectionalMinIncomingLinker::default()),
+        Box::new(RandomLinker::default()),
+        Box::new(BidirectionalRandomLinker::default()),
     ];
 }
 
@@ -52,7 +58,8 @@ lazy_static! {
 ///     println!(r#"linker {} has name "{}""#, i, l.name());
 /// });
 /// ```
-pub fn iter_linkers() -> impl Iterator<Item = &'static (dyn Linker + Sync + 'static)> + 'static {
+pub fn iter_linkers(
+) -> impl Iterator<Item = &'static (dyn Linker<Pcg32> + Sync + 'static)> + 'static {
     LINKERS.iter().map(|b| b.as_ref())
 }
 
@@ -64,7 +71,7 @@ pub fn iter_linkers() -> impl Iterator<Item = &'static (dyn Linker + Sync + 'sta
 /// assert!(linkers::linker_from_str("first/1").is_err()); // wrong parameters
 /// assert!(linkers::linker_from_str("foo").is_err()); // unknown linker
 /// ```
-pub fn linker_from_str(s: &str) -> Result<BoxedLinker> {
+pub fn linker_from_str(s: &str) -> Result<BoxedLinker<Pcg32>> {
     named_param::named_from_str(LINKERS.as_slice(), s)
         .context("while building a linker from a string")
 }
