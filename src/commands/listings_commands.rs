@@ -26,7 +26,7 @@ impl<'a> Command<'a> for GeneratorsCommand {
     }
 
     fn execute(&self, _arg_matches: &ArgMatches<'_>) -> Result<()> {
-        print_listing(generators::iter_generator_factories());
+        print_listing(generators::iter_directed_generator_factories());
         Ok(())
     }
 }
@@ -54,7 +54,7 @@ impl<'a> Command<'a> for LinkersCommand {
     }
 
     fn execute(&self, _arg_matches: &ArgMatches<'_>) -> Result<()> {
-        print_listing(linkers::iter_linkers());
+        print_listing(linkers::iter_directed_linkers());
         Ok(())
     }
 }

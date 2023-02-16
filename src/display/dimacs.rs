@@ -1,6 +1,5 @@
-use petgraph::EdgeType;
-
 use crate::Graph;
+use petgraph::EdgeType;
 use std::fmt::Display;
 
 impl<Ty> Graph<Ty>
@@ -25,6 +24,9 @@ where
         writeln!(f, "p af {}", self.0.n_nodes())?;
         for e in self.0.iter_edges() {
             writeln!(f, "{} {}", e.0 + 1, e.1 + 1)?;
+            if !Ty::is_directed() {
+                writeln!(f, "{} {}", e.1 + 1, e.0 + 1)?;
+            }
         }
         Ok(())
     }

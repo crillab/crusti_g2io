@@ -1,5 +1,5 @@
 mod generate_command;
-pub use generate_command::GenerateCommand;
+pub use generate_command::{GenerateDirectedCommand, GenerateUndirectedCommand};
 
 mod listings_commands;
 pub use listings_commands::GeneratorsCommand;

@@ -1,6 +1,8 @@
 mod commands;
 
-use commands::{GenerateCommand, GeneratorsCommand, LinkersCommand};
+use commands::{
+    GenerateDirectedCommand, GenerateUndirectedCommand, GeneratorsCommand, LinkersCommand,
+};
 use crusti_app_helper::{AppHelper, Command};
 
 pub(crate) fn create_app_helper() -> AppHelper<'static> {
@@ -14,7 +16,8 @@ pub(crate) fn create_app_helper() -> AppHelper<'static> {
         "crusti_g2io, a Graph Generator following an Inner/Outer pattern.",
     );
     let commands: Vec<Box<dyn Command>> = vec![
-        Box::new(GenerateCommand::new()),
+        Box::new(GenerateDirectedCommand::new()),
+        Box::new(GenerateUndirectedCommand::new()),
         Box::new(GeneratorsCommand::new()),
         Box::new(LinkersCommand::new()),
     ];

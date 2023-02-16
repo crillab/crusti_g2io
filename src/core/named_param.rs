@@ -12,7 +12,7 @@ use anyhow::{anyhow, Context, Result};
 /// use rand_core::SeedableRng;
 ///
 /// // displaying the available generators
-/// for g in generators::iter_generator_factories() {
+/// for g in generators::iter_directed_generator_factories() {
 ///     println!(
 ///         r#"generator "{}" has description {:?}"#,
 ///         g.name(),
@@ -21,7 +21,7 @@ use anyhow::{anyhow, Context, Result};
 /// }
 ///
 /// // building a generator for chain graphs of length 3 and a related graph.
-/// let generator_factory = generators::iter_generator_factories()
+/// let generator_factory = generators::iter_directed_generator_factories()
 ///     .find(|f| f.name() == "chain")
 ///     .unwrap();
 /// let generator = generator_factory.try_with_params("3").unwrap();

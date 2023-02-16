@@ -6,6 +6,8 @@ use rand::Rng;
 
 /// A factory used to build generators for [Barabási-Albert](https://en.wikipedia.org/wiki/Barab%C3%A1si%E2%80%93Albert_model) graphs.
 ///
+/// In directed graphs generated with this object, edge sources are the new nodes and targets the existing ones.
+///
 /// Such factories can be created by passing `ba/n,m` to [`generators::generator_factory_from_str`](crate::generators#generator_factory_from_str) where
 ///   - `n` is the size of graph to produce;
 ///   - `m` is the size of the graph used for the initialization step.
