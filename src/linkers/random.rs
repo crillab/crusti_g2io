@@ -1,6 +1,7 @@
 use super::{BoxedLinker, Linker};
 use crate::{core::utils, InterGraphEdge, NamedParam};
 use anyhow::{Context, Result};
+use petgraph::EdgeType;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
 /// A linker that connects the nodes from the first graph to the ones of the second graph in a random fashion.
@@ -11,9 +12,10 @@ use rand::{distributions::Uniform, prelude::Distribution, Rng};
 #[derive(Default)]
 pub struct RandomLinker;
 
-impl<R> NamedParam<BoxedLinker<R>> for RandomLinker
+impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for RandomLinker
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "random"
@@ -23,12 +25,17 @@ where
         vec!["Links the nodes from the first graph to the ones of the second graph in a random fashion.", "The probability each arc is set is given by the first parameter."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
         try_with_params(params, false)
     }
 }
 
-impl<R> Linker<R> for RandomLinker where R: Rng {}
+impl<Ty, R> Linker<Ty, R> for RandomLinker
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 /// A bidirectional linker that connects the nodes from one graph to another in a random fashion.
 ///
@@ -38,9 +45,10 @@ impl<R> Linker<R> for RandomLinker where R: Rng {}
 #[derive(Default)]
 pub struct BidirectionalRandomLinker;
 
-impl<R> NamedParam<BoxedLinker<R>> for BidirectionalRandomLinker
+impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for BidirectionalRandomLinker
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "random_bi"
@@ -50,16 +58,22 @@ where
         vec!["Links the nodes from the first graph to the ones of the second graph in a random fashion, and vice-versa.", "The probability each arc is set is given by the first parameter."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
         try_with_params(params, true)
     }
 }
 
-impl<R> Linker<R> for BidirectionalRandomLinker where R: Rng {}
-
-fn try_with_params<R>(params: &str, bidirectional: bool) -> Result<BoxedLinker<R>>
+impl<Ty, R> Linker<Ty, R> for BidirectionalRandomLinker
 where
     R: Rng,
+    Ty: EdgeType,
+{
+}
+
+fn try_with_params<Ty, R>(params: &str, bidirectional: bool) -> Result<BoxedLinker<Ty, R>>
+where
+    R: Rng,
+    Ty: EdgeType,
 {
     let context = "while building a random linker";
     let (_, p) =
@@ -89,22 +103,29 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generators::ChainGeneratorFactory;
+    use crate::generators::{BoxedGenerator, ChainGeneratorFactory};
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_random_not_enough_params() {
-        assert!((RandomLinker.try_with_params("") as Result<BoxedLinker<ThreadRng>>).is_err());
+        assert!(
+            (RandomLinker.try_with_params("") as Result<BoxedLinker<Directed, ThreadRng>>).is_err()
+        );
     }
 
     #[test]
     fn test_random_too_much_params() {
-        assert!((RandomLinker.try_with_params("1,1") as Result<BoxedLinker<ThreadRng>>).is_err());
+        assert!(
+            (RandomLinker.try_with_params("1,1") as Result<BoxedLinker<Directed, ThreadRng>>)
+                .is_err()
+        );
     }
 
     #[test]
     fn test_random_ok_0() {
-        let graph_generator = ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
+            ChainGeneratorFactory.try_with_params("2").unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
@@ -117,7 +138,8 @@ mod tests {
 
     #[test]
     fn test_random_ok_1() {
-        let graph_generator = ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
+            ChainGeneratorFactory.try_with_params("2").unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
@@ -135,22 +157,22 @@ mod tests {
 
     #[test]
     fn test_random_bi_not_enough_params() {
-        assert!(
-            (BidirectionalRandomLinker.try_with_params("") as Result<BoxedLinker<ThreadRng>>)
-                .is_err()
-        );
+        assert!((BidirectionalRandomLinker.try_with_params("")
+            as Result<BoxedLinker<Directed, ThreadRng>>)
+            .is_err());
     }
 
     #[test]
     fn test_random_bi_too_much_params() {
         assert!((BidirectionalRandomLinker.try_with_params("1,1")
-            as Result<BoxedLinker<ThreadRng>>)
+            as Result<BoxedLinker<Directed, ThreadRng>>)
             .is_err());
     }
 
     #[test]
     fn test_random_bi_ok_0() {
-        let graph_generator = ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
+            ChainGeneratorFactory.try_with_params("2").unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
@@ -163,7 +185,8 @@ mod tests {
 
     #[test]
     fn test_random_bi_ok_1() {
-        let graph_generator = ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
+            ChainGeneratorFactory.try_with_params("2").unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);

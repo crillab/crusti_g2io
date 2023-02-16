@@ -1,6 +1,7 @@
 use super::{BoxedGenerator, GeneratorFactory};
 use crate::{core::utils, NamedParam};
 use anyhow::{Context, Result};
+use petgraph::EdgeType;
 use rand::Rng;
 
 /// A factory used to build generators for [Erdős–Rényi](https://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model) graphs.
@@ -14,9 +15,10 @@ use rand::Rng;
 #[derive(Default)]
 pub struct ErdosRenyiGeneratorFactory;
 
-impl<R> NamedParam<BoxedGenerator<R>> for ErdosRenyiGeneratorFactory
+impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for ErdosRenyiGeneratorFactory
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "er"
@@ -29,7 +31,7 @@ where
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building an Erdős–Rényi generator";
         let (v, p) =
             utils::str_param_to_positive_integers_and_probability(params, 1).context(context)?;
@@ -39,32 +41,39 @@ where
     }
 }
 
-impl<R> GeneratorFactory<R> for ErdosRenyiGeneratorFactory where R: Rng {}
+impl<Ty, R> GeneratorFactory<Ty, R> for ErdosRenyiGeneratorFactory
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::NodeIndexType;
+    use crate::{Graph, NodeIndexType};
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_not_enough_params() {
         assert!((ErdosRenyiGeneratorFactory.try_with_params("1")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_too_much_params() {
         assert!((ErdosRenyiGeneratorFactory.try_with_params("2,1,0")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_probability_0() {
         let mut rng = rand::thread_rng();
-        let g = ErdosRenyiGeneratorFactory.try_with_params("3,0").unwrap()(&mut rng);
+        let g: Graph<Directed> =
+            ErdosRenyiGeneratorFactory.try_with_params("3,0").unwrap()(&mut rng);
         assert_eq!(3, g.n_nodes());
         assert_eq!(
             vec![] as Vec<(NodeIndexType, NodeIndexType)>,
@@ -76,7 +85,8 @@ mod tests {
     #[test]
     fn test_probability_1() {
         let mut rng = rand::thread_rng();
-        let g = ErdosRenyiGeneratorFactory.try_with_params("3,1").unwrap()(&mut rng);
+        let g: Graph<Directed> =
+            ErdosRenyiGeneratorFactory.try_with_params("3,1").unwrap()(&mut rng);
         assert_eq!(3, g.n_nodes());
         let mut edges = g
             .iter_edges()

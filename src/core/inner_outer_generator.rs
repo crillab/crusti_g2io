@@ -1,5 +1,6 @@
 use super::InnerGraph;
 use crate::{Graph, InterGraphEdge, NodeIndexType};
+use petgraph::EdgeType;
 use rand::{distributions::Standard, Rng, SeedableRng};
 use rayon::prelude::*;
 
@@ -29,11 +30,12 @@ impl InnerOuterGenerator {
     /// Finally, for each edge in the outer graph, the two corresponding inner graphs are joined with the linker.
     ///
     /// ```
-    /// # use crusti_g2io::{Graph, ChainGeneratorFactory, InnerOuterGenerator, InterGraphEdge, NodeIndexType, FirstToFirstLinker, NamedParam};
+    /// # use crusti_g2io::{Graph, ChainGeneratorFactory, InnerOuterGenerator, InterGraphEdge, NodeIndexType, FirstToFirstLinker, NamedParam, linkers::BoxedLinker};
+    /// use petgraph::Directed;
     /// use rand::SeedableRng;
     /// use rand_pcg::Pcg32;
     ///
-    /// let first_node_edge_selector = FirstToFirstLinker::default().try_with_params("").unwrap();
+    /// let first_node_edge_selector: BoxedLinker<Directed, Pcg32> = FirstToFirstLinker::default().try_with_params("").unwrap();
     /// let inner_outer_generator = InnerOuterGenerator::default();
     /// let inner_outer = inner_outer_generator.new_inner_outer(
     ///     ChainGeneratorFactory::default().try_with_params("2").unwrap(),
@@ -50,32 +52,34 @@ impl InnerOuterGenerator {
     ///     expected
     /// );
     /// ```
-    pub fn new_inner_outer<F, G, H, R>(
+    pub fn new_inner_outer<F, G, H, R, Ty>(
         &self,
         outer_graph_builder: F,
         inner_graph_builder: G,
         linker: H,
         rng: &mut R,
-    ) -> Graph
+    ) -> Graph<Ty>
     where
-        F: Fn(&mut R) -> Graph,
-        G: Fn(&mut R) -> Graph + Sync + Send,
-        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
+        F: Fn(&mut R) -> Graph<Ty>,
+        G: Fn(&mut R) -> Graph<Ty> + Sync + Send,
+        H: Fn(InnerGraph<Ty>, InnerGraph<Ty>, &mut R) -> Vec<InterGraphEdge> + Sync,
         R: Rng + SeedableRng + Send,
+        Ty: EdgeType + Send + Sync,
     {
         let outer_graph = self.generate_outer_graph(outer_graph_builder, rng);
         let inner_graphs = self.generate_inner_graphs(&outer_graph, inner_graph_builder, rng);
-        let mut global_graph = Graph::default();
+        let mut global_graph = Graph::<Ty>::default();
         inner_graphs
             .iter()
             .for_each(|g| global_graph.append_graph(g));
         self.link(&outer_graph, &inner_graphs, linker, rng)
     }
 
-    fn generate_outer_graph<F, R>(&self, outer_graph_builder: F, rng: &mut R) -> Graph
+    fn generate_outer_graph<F, R, Ty>(&self, outer_graph_builder: F, rng: &mut R) -> Graph<Ty>
     where
-        F: Fn(&mut R) -> Graph,
+        F: Fn(&mut R) -> Graph<Ty>,
         R: Rng + SeedableRng + Send,
+        Ty: EdgeType,
     {
         self.generation_step_listeners
             .iter()
@@ -83,15 +87,16 @@ impl InnerOuterGenerator {
         (outer_graph_builder)(rng)
     }
 
-    fn generate_inner_graphs<G, R>(
+    fn generate_inner_graphs<G, R, Ty>(
         &self,
-        outer_graph: &Graph,
+        outer_graph: &Graph<Ty>,
         inner_graph_builder: G,
         rng: &mut R,
-    ) -> Vec<Graph>
+    ) -> Vec<Graph<Ty>>
     where
-        G: Fn(&mut R) -> Graph + Sync + Send,
+        G: Fn(&mut R) -> Graph<Ty> + Sync + Send,
         R: Rng + SeedableRng + Send,
+        Ty: EdgeType + Send,
     {
         self.generation_step_listeners
             .iter()
@@ -107,16 +112,17 @@ impl InnerOuterGenerator {
             .collect()
     }
 
-    fn link<H, R>(
+    fn link<H, R, Ty>(
         &self,
-        outer_graph: &Graph,
-        inner_graphs: &[Graph],
+        outer_graph: &Graph<Ty>,
+        inner_graphs: &[Graph<Ty>],
         linker: H,
         rng: &mut R,
-    ) -> Graph
+    ) -> Graph<Ty>
     where
-        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
+        H: Fn(InnerGraph<Ty>, InnerGraph<Ty>, &mut R) -> Vec<InterGraphEdge> + Sync,
         R: Rng + SeedableRng + Send,
+        Ty: EdgeType + Send + Sync,
     {
         let mut global_graph = Graph::default();
         inner_graphs
@@ -146,18 +152,19 @@ impl InnerOuterGenerator {
         )
     }
 
-    fn add_linking_edges<H, R>(
+    fn add_linking_edges<H, R, Ty>(
         &self,
-        outer_graph: &Graph,
-        inner_graphs: &[Graph],
+        outer_graph: &Graph<Ty>,
+        inner_graphs: &[Graph<Ty>],
         cumulated_n_nodes: &[usize],
-        mut global_graph: Graph,
+        mut global_graph: Graph<Ty>,
         linker: H,
         rng: &mut R,
-    ) -> Graph
+    ) -> Graph<Ty>
     where
-        H: Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync,
+        H: Fn(InnerGraph<Ty>, InnerGraph<Ty>, &mut R) -> Vec<InterGraphEdge> + Sync,
         R: Rng + SeedableRng + Send,
+        Ty: EdgeType + Send + Sync,
     {
         let raw_edges = outer_graph.petgraph().raw_edges();
         let seeds: Vec<u64> = rng.sample_iter(Standard).take(raw_edges.len()).collect();
@@ -212,6 +219,7 @@ impl InnerOuterGenerator {
 mod tests {
     use super::*;
     use crate::NodeIndexType;
+    use petgraph::Directed;
     use rand_pcg::Pcg32;
 
     #[test]
@@ -231,7 +239,9 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: InnerGraph, _: InnerGraph, _: &mut Pcg32| vec![InterGraphEdge::FirstToSecond(0, 0)];
+            |_: InnerGraph<Directed>, _: InnerGraph<Directed>, _: &mut Pcg32| {
+                vec![InterGraphEdge::FirstToSecond(0, 0)]
+            };
         let inner_outer_generator = InnerOuterGenerator::default();
         let inner_outer = inner_outer_generator.new_inner_outer(
             chain_builder,
@@ -266,7 +276,9 @@ mod tests {
             g
         };
         let first_node_edge_selector =
-            |_: InnerGraph, _: InnerGraph, _: &mut Pcg32| vec![InterGraphEdge::SecondToFirst(0, 0)];
+            |_: InnerGraph<Directed>, _: InnerGraph<Directed>, _: &mut Pcg32| {
+                vec![InterGraphEdge::SecondToFirst(0, 0)]
+            };
         let inner_outer_generator = InnerOuterGenerator::default();
         let inner_outer = inner_outer_generator.new_inner_outer(
             chain_builder,

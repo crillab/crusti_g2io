@@ -1,6 +1,7 @@
 use super::{BoxedLinker, Linker};
 use crate::{core::InnerGraph, InterGraphEdge, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use petgraph::EdgeType;
 use rand::Rng;
 use std::sync::{Arc, Mutex};
 
@@ -14,9 +15,10 @@ pub struct MinIncomingLinker {
     min_incoming_cache: Cache,
 }
 
-impl<R> NamedParam<BoxedLinker<R>> for MinIncomingLinker
+impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for MinIncomingLinker
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "min_incoming"
@@ -26,12 +28,17 @@ where
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
         try_with_params(params, Arc::clone(&self.min_incoming_cache), false)
     }
 }
 
-impl<R> Linker<R> for MinIncomingLinker where R: Rng {}
+impl<Ty, R> Linker<Ty, R> for MinIncomingLinker
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 /// A bidirectional linker that connects graph by targeting their nodes with the lowest incoming edges.
 ///
@@ -41,9 +48,10 @@ pub struct BidirectionalMinIncomingLinker {
     min_incoming_cache: Cache,
 }
 
-impl<R> NamedParam<BoxedLinker<R>> for BidirectionalMinIncomingLinker
+impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for BidirectionalMinIncomingLinker
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "min_incoming_bi"
@@ -53,20 +61,26 @@ where
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property, and vice-versa."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
         try_with_params(params, Arc::clone(&self.min_incoming_cache), true)
     }
 }
 
-impl<R> Linker<R> for BidirectionalMinIncomingLinker where R: Rng {}
+impl<Ty, R> Linker<Ty, R> for BidirectionalMinIncomingLinker
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
-fn try_with_params<R>(
+fn try_with_params<Ty, R>(
     params: &str,
     min_incoming_cache: Cache,
     bidirectional: bool,
-) -> Result<BoxedLinker<R>>
+) -> Result<BoxedLinker<Ty, R>>
 where
     R: Rng,
+    Ty: EdgeType,
 {
     let context = "while building a sources linker";
     if !params.is_empty() {
@@ -88,7 +102,10 @@ where
     }))
 }
 
-fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Cache) -> Vec<usize> {
+fn compute_min_incoming<Ty>(g: &InnerGraph<Ty>, min_incoming_cache: Cache) -> Vec<usize>
+where
+    Ty: EdgeType,
+{
     let mut cache_handle = min_incoming_cache.lock().unwrap();
     if cache_handle.len() <= g.index() {
         cache_handle.resize(1 + g.index(), None);
@@ -115,18 +132,19 @@ fn compute_min_incoming(g: &InnerGraph, min_incoming_cache: Cache) -> Vec<usize>
 mod tests {
     use super::*;
     use crate::Graph;
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_min_incoming_too_much_params() {
         assert!((MinIncomingLinker::default().try_with_params("1")
-            as Result<BoxedLinker<ThreadRng>>)
+            as Result<BoxedLinker<Directed, ThreadRng>>)
             .is_err());
     }
 
     #[test]
     fn test_min_incoming_ok() {
-        let mut g0 = Graph::default();
+        let mut g0: Graph<Directed> = Graph::default();
         g0.new_node();
         g0.new_node();
         let mut g1 = Graph::default();
@@ -145,14 +163,14 @@ mod tests {
     fn test_min_incoming_bi_too_much_params() {
         assert!(
             (BidirectionalMinIncomingLinker::default().try_with_params("1")
-                as Result<BoxedLinker<ThreadRng>>)
+                as Result<BoxedLinker<Directed, ThreadRng>>)
                 .is_err()
         );
     }
 
     #[test]
     fn test_min_incoming_bi_ok() {
-        let mut g0 = Graph::default();
+        let mut g0: Graph<Directed> = Graph::default();
         g0.new_node();
         g0.new_node();
         let mut g1 = Graph::default();

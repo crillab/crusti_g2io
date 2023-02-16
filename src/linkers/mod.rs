@@ -16,6 +16,7 @@ mod min_incoming;
 pub use min_incoming::{BidirectionalMinIncomingLinker, MinIncomingLinker};
 
 mod random;
+use petgraph::{Directed, EdgeType};
 pub use random::{BidirectionalRandomLinker, RandomLinker};
 
 use crate::{
@@ -34,13 +35,18 @@ use rand_pcg::Pcg32;
 /// // getting a boxed linker from a string
 /// let linker = linkers::linker_from_str("first").unwrap();
 /// ```
-pub type BoxedLinker<R> = Box<dyn Fn(InnerGraph, InnerGraph, &mut R) -> Vec<InterGraphEdge> + Sync>;
+pub type BoxedLinker<Ty, R> =
+    Box<dyn Fn(InnerGraph<Ty>, InnerGraph<Ty>, &mut R) -> Vec<InterGraphEdge> + Sync>;
 
 /// A trait for objects that are used to link inner graphs.
-pub trait Linker<R>: NamedParam<BoxedLinker<R>> {}
+pub trait Linker<Ty, R>: NamedParam<BoxedLinker<Ty, R>>
+where
+    Ty: EdgeType,
+{
+}
 
 lazy_static! {
-    pub(crate) static ref LINKERS: [Box<dyn Linker<Pcg32> + Sync>; 6] = [
+    pub(crate) static ref LINKERS_DIRECTED_PCG32: [Box<dyn Linker<Directed, Pcg32> + Sync>; 6] = [
         Box::new(FirstToFirstLinker::default()),
         Box::new(BidirectionalFirstToFirstLinker::default()),
         Box::new(MinIncomingLinker::default()),
@@ -59,8 +65,8 @@ lazy_static! {
 /// });
 /// ```
 pub fn iter_linkers(
-) -> impl Iterator<Item = &'static (dyn Linker<Pcg32> + Sync + 'static)> + 'static {
-    LINKERS.iter().map(|b| b.as_ref())
+) -> impl Iterator<Item = &'static (dyn Linker<Directed, Pcg32> + Sync + 'static)> + 'static {
+    LINKERS_DIRECTED_PCG32.iter().map(|b| b.as_ref())
 }
 
 /// Given a string representing a parameterized linker, returns the corresponding object.
@@ -71,8 +77,8 @@ pub fn iter_linkers(
 /// assert!(linkers::linker_from_str("first/1").is_err()); // wrong parameters
 /// assert!(linkers::linker_from_str("foo").is_err()); // unknown linker
 /// ```
-pub fn linker_from_str(s: &str) -> Result<BoxedLinker<Pcg32>> {
-    named_param::named_from_str(LINKERS.as_slice(), s)
+pub fn linker_from_str(s: &str) -> Result<BoxedLinker<Directed, Pcg32>> {
+    named_param::named_from_str(LINKERS_DIRECTED_PCG32.as_slice(), s)
         .context("while building a linker from a string")
 }
 

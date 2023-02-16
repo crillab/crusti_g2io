@@ -26,6 +26,7 @@ mod erdos_renyi;
 pub use erdos_renyi::ErdosRenyiGeneratorFactory;
 
 mod tree_generator;
+use petgraph::{Directed, EdgeType};
 pub use tree_generator::TreeGeneratorFactory;
 
 mod watts_strogatz;
@@ -50,17 +51,18 @@ use rand_pcg::Pcg32;
 /// let generator = generators::generator_factory_from_str("chain/3").unwrap();
 /// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
-pub type BoxedGenerator<R> = Box<dyn Fn(&mut R) -> Graph + Sync + Send>;
+pub type BoxedGenerator<Ty, R> = Box<dyn Fn(&mut R) -> Graph<Ty> + Sync + Send>;
 
 /// A trait for objects that produce graph generators.
-pub trait GeneratorFactory<R>: NamedParam<BoxedGenerator<R>>
+pub trait GeneratorFactory<Ty, R>: NamedParam<BoxedGenerator<Ty, R>>
 where
     R: Rng,
+    Ty: EdgeType,
 {
 }
 
 lazy_static! {
-    pub(crate) static ref FACTORIES_THREAD_PCG32: [Box<dyn GeneratorFactory<Pcg32> + Sync>; 5] = [
+    pub(crate) static ref GENERATOR_FACTORIES_DIRECTED_PCG32: [Box<dyn GeneratorFactory<Directed, Pcg32> + Sync>; 5] = [
         Box::new(BarabasiAlbertGeneratorFactory::default()),
         Box::new(ChainGeneratorFactory::default()),
         Box::new(ErdosRenyiGeneratorFactory::default()),
@@ -78,8 +80,11 @@ lazy_static! {
 /// });
 /// ```
 pub fn iter_generator_factories(
-) -> impl Iterator<Item = &'static (dyn GeneratorFactory<Pcg32> + Sync + 'static)> + 'static {
-    FACTORIES_THREAD_PCG32.iter().map(|b| b.as_ref())
+) -> impl Iterator<Item = &'static (dyn GeneratorFactory<Directed, Pcg32> + Sync + 'static)> + 'static
+{
+    GENERATOR_FACTORIES_DIRECTED_PCG32
+        .iter()
+        .map(|b| b.as_ref())
 }
 
 /// Given a string representing a parameterized generator factory, returns the corresponding object.
@@ -90,8 +95,8 @@ pub fn iter_generator_factories(
 /// assert!(generators::generator_factory_from_str("chain/1,2,3").is_err()); // wrong parameters
 /// assert!(generators::generator_factory_from_str("foo/3").is_err()); // unknown generator
 /// ```
-pub fn generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Pcg32>> {
-    named_param::named_from_str(FACTORIES_THREAD_PCG32.as_slice(), s)
+pub fn generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Directed, Pcg32>> {
+    named_param::named_from_str(GENERATOR_FACTORIES_DIRECTED_PCG32.as_slice(), s)
         .context("while building a generator from a string")
 }
 

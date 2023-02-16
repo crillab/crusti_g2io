@@ -1,6 +1,7 @@
 use super::{BoxedGenerator, GeneratorFactory};
 use crate::{core::utils, Graph, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use petgraph::EdgeType;
 use rand::Rng;
 
 /// A factory used to build generators for chain graphs.
@@ -10,7 +11,10 @@ use rand::Rng;
 #[derive(Default)]
 pub struct ChainGeneratorFactory;
 
-impl<R> NamedParam<BoxedGenerator<R>> for ChainGeneratorFactory {
+impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for ChainGeneratorFactory
+where
+    Ty: EdgeType,
+{
     fn name(&self) -> &'static str {
         "chain"
     }
@@ -22,7 +26,7 @@ impl<R> NamedParam<BoxedGenerator<R>> for ChainGeneratorFactory {
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a chain generator";
         let int_params = utils::str_param_to_positive_integers(params).context(context)?;
         if let &[n] = int_params.as_slice() {
@@ -45,34 +49,38 @@ impl<R> NamedParam<BoxedGenerator<R>> for ChainGeneratorFactory {
     }
 }
 
-impl<R> GeneratorFactory<R> for ChainGeneratorFactory where R: Rng {}
+impl<Ty, R> GeneratorFactory<Ty, R> for ChainGeneratorFactory
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::NodeIndexType;
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_not_enough_params() {
-        assert!(
-            (ChainGeneratorFactory.try_with_params("") as Result<BoxedGenerator<ThreadRng>>)
-                .is_err()
-        )
+        assert!((ChainGeneratorFactory.try_with_params("")
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
+            .is_err())
     }
 
     #[test]
     fn test_too_much_params() {
-        assert!(
-            (ChainGeneratorFactory.try_with_params("1,1") as Result<BoxedGenerator<ThreadRng>>)
-                .is_err()
-        )
+        assert!((ChainGeneratorFactory.try_with_params("1,1")
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
+            .is_err())
     }
 
     #[test]
     fn test_chain_of_zero() {
         let mut rng = rand::thread_rng();
-        let g = ChainGeneratorFactory.try_with_params("0").unwrap()(&mut rng);
+        let g: Graph<Directed> = ChainGeneratorFactory.try_with_params("0").unwrap()(&mut rng);
         assert_eq!(0, g.n_nodes());
         assert_eq!(0, g.n_edges());
     }
@@ -80,7 +88,7 @@ mod tests {
     #[test]
     fn test_chain_of_one() {
         let mut rng = rand::thread_rng();
-        let g = ChainGeneratorFactory.try_with_params("1").unwrap()(&mut rng);
+        let g: Graph<Directed> = ChainGeneratorFactory.try_with_params("1").unwrap()(&mut rng);
         assert_eq!(1, g.n_nodes());
         assert_eq!(0, g.n_edges());
     }
@@ -88,7 +96,7 @@ mod tests {
     #[test]
     fn test_chain() {
         let mut rng = rand::thread_rng();
-        let g = ChainGeneratorFactory.try_with_params("3").unwrap()(&mut rng);
+        let g: Graph<Directed> = ChainGeneratorFactory.try_with_params("3").unwrap()(&mut rng);
         assert_eq!(3, g.n_nodes());
         assert_eq!(
             vec![(0, 1), (1, 2)],

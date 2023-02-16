@@ -1,16 +1,26 @@
+use petgraph::EdgeType;
+
 use crate::Graph;
 use std::fmt::Display;
 
-impl Graph {
+impl<Ty> Graph<Ty>
+where
+    Ty: EdgeType,
+{
     /// Returns an object used to display the graph using the [Dimacs format](https://iccma2023.github.io/rules.html#input-format).
-    pub fn to_dimacs_display(&self) -> DimacsDisplay {
+    pub fn to_dimacs_display(&self) -> DimacsDisplay<Ty> {
         DimacsDisplay(self)
     }
 }
 
-pub struct DimacsDisplay<'a>(&'a Graph);
+pub struct DimacsDisplay<'a, Ty>(&'a Graph<Ty>)
+where
+    Ty: EdgeType;
 
-impl Display for DimacsDisplay<'_> {
+impl<Ty> Display for DimacsDisplay<'_, Ty>
+where
+    Ty: EdgeType,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "p af {}", self.0.n_nodes())?;
         for e in self.0.iter_edges() {

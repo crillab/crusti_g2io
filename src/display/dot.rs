@@ -1,17 +1,28 @@
 use crate::Graph;
-use petgraph::dot::{Config, Dot};
+use petgraph::{
+    dot::{Config, Dot},
+    EdgeType,
+};
 use std::fmt::Display;
 
-impl Graph {
+impl<Ty> Graph<Ty>
+where
+    Ty: EdgeType,
+{
     /// Returns an object used to display the graph using the [Graphviz DOT format](https://graphviz.org/doc/info/lang.html).
-    pub fn to_dot_display(&self) -> DotDisplay {
+    pub fn to_dot_display(&self) -> DotDisplay<Ty> {
         DotDisplay(self)
     }
 }
 
-pub struct DotDisplay<'a>(&'a Graph);
+pub struct DotDisplay<'a, Ty>(&'a Graph<Ty>)
+where
+    Ty: EdgeType;
 
-impl Display for DotDisplay<'_> {
+impl<Ty> Display for DotDisplay<'_, Ty>
+where
+    Ty: EdgeType,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let dot_display = Dot::with_config(
             self.0.petgraph(),

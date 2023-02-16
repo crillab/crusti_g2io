@@ -1,5 +1,5 @@
 use petgraph::graph::NodeIndex;
-use petgraph::Directed;
+use petgraph::EdgeType;
 
 /// The node label type
 pub type NodeIndexType = usize;
@@ -14,7 +14,9 @@ pub type NodeIndexType = usize;
 ///
 /// ```
 /// # use crusti_g2io::Graph;
-/// fn chain(n: usize) -> Graph {
+/// use petgraph::Directed;
+///
+/// fn chain(n: usize) -> Graph<Directed> {
 ///     let graph = match n {
 ///         0 => Graph::default(),
 ///         1 => {
@@ -34,8 +36,18 @@ pub type NodeIndexType = usize;
 /// }
 /// # chain(2);
 /// ```
-#[derive(Default)]
-pub struct Graph(petgraph::Graph<(), (), Directed, NodeIndexType>);
+pub struct Graph<Ty>(petgraph::Graph<(), (), Ty, NodeIndexType>)
+where
+    Ty: EdgeType;
+
+impl<Ty> Default for Graph<Ty>
+where
+    Ty: EdgeType,
+{
+    fn default() -> Self {
+        Self(petgraph::Graph::<(), (), Ty, NodeIndexType>::default())
+    }
+}
 
 /// An edge between the nodes of two different graphs.
 ///
@@ -49,7 +61,10 @@ pub enum InterGraphEdge {
     SecondToFirst(NodeIndexType, NodeIndexType),
 }
 
-impl Graph {
+impl<Ty> Graph<Ty>
+where
+    Ty: EdgeType,
+{
     /// Builds a new graph with an initial capacity for nodes and edges.
     ///
     /// These capacity are only size hints; they can improve performance but a graph built by this method can handle any number of nodes and edges.
@@ -61,7 +76,9 @@ impl Graph {
     ///
     /// ```
     /// # use crusti_g2io::Graph;
-    /// let mut graph = Graph::default();
+    /// use petgraph::Directed;
+    ///
+    /// let mut graph = Graph::<Directed>::default();
     /// assert_eq!(0, graph.n_nodes());
     /// graph.new_node();
     /// assert_eq!(1, graph.n_nodes());
@@ -82,9 +99,13 @@ impl Graph {
     /// If one of the nodes involved in the edge is not defined yet, this functions adds it the the graph
     /// and defines all the missing nodes which have a label between 0 and the label of the new node.
     ///
+    /// Beware: functions allows the addition of the same edge multiple times.
+    ///
     /// ```
     /// # use crusti_g2io::Graph;
-    /// let mut graph = Graph::default();
+    /// use petgraph::Directed;
+    ///
+    /// let mut graph = Graph::<Directed>::default();
     /// assert_eq!(0, graph.n_nodes());
     /// graph.new_edge(2_usize.into(), 3_usize.into());
     /// assert_eq!(4, graph.n_nodes());
@@ -109,13 +130,17 @@ impl Graph {
     ///
     /// Edges are given as couples of labels.
     ///
+    /// This functions returns a view to the edges just the way they have been added.
+    /// In particular, if an edge was added `n` times, the iterator will yield it `n` times.
     /// ```
     /// # use crusti_g2io::Graph;
-    /// fn debug_graph(g: &Graph) {
+    /// use petgraph::EdgeType;
+    ///
+    /// fn debug_graph<Ty>(g: &Graph<Ty>) where Ty: EdgeType {
     ///     println!("g has {} nodes", g.n_nodes());
     ///     g.iter_edges().for_each(|(s,t)| println!("there is an edge from {} to {}", s, t));
     /// }
-    /// # debug_graph(&Graph::default());
+    /// # debug_graph(&Graph::<petgraph::Directed>::default());
     /// ```
     pub fn iter_edges(&self) -> impl Iterator<Item = (NodeIndexType, NodeIndexType)> + '_ {
         self.0
@@ -124,11 +149,11 @@ impl Graph {
             .map(|e| (e.source().index(), e.target().index()))
     }
 
-    /// Removes the edges given its source and target nodes.
+    /// Removes the edge given the two nodes it links (source may be given first in case the graph is directed).
     ///
     /// # Panics
     ///
-    /// If the provided source and target do not match any edge, this function panics.
+    /// If the provided nodes do not match any edge, this function panics.
     pub fn remove_edge(&mut self, from: NodeIndexType, to: NodeIndexType) {
         let index = self
             .0
@@ -137,7 +162,7 @@ impl Graph {
         self.0.remove_edge(index).unwrap();
     }
 
-    pub(crate) fn append_graph(&mut self, g: &Graph) {
+    pub(crate) fn append_graph(&mut self, g: &Graph<Ty>) {
         let self_n_nodes = self.n_nodes();
         let g_n_nodes = g.n_nodes();
         self.0.reserve_nodes(g_n_nodes);
@@ -153,7 +178,7 @@ impl Graph {
         }
     }
 
-    pub(crate) fn petgraph(&self) -> &petgraph::Graph<(), (), Directed, NodeIndexType> {
+    pub(crate) fn petgraph(&self) -> &petgraph::Graph<(), (), Ty, NodeIndexType> {
         &self.0
     }
 }
@@ -161,25 +186,34 @@ impl Graph {
 /// A structure used to store an inner graph.
 ///
 /// Its main purpose is to associate an index to a graph, allowing linkers to cache data.
-pub struct InnerGraph<'a> {
+pub struct InnerGraph<'a, Ty>
+where
+    Ty: EdgeType,
+{
     index: usize,
-    graph: &'a Graph,
+    graph: &'a Graph<Ty>,
 }
 
-impl InnerGraph<'_> {
+impl<Ty> InnerGraph<'_, Ty>
+where
+    Ty: EdgeType,
+{
     /// Returns the index of the inner graph.
     pub fn index(&self) -> usize {
         self.index
     }
 
     /// Returns the inner graph.
-    pub fn graph(&self) -> &Graph {
+    pub fn graph(&self) -> &Graph<Ty> {
         self.graph
     }
 }
 
-impl<'a> From<(usize, &'a Graph)> for InnerGraph<'a> {
-    fn from(t: (usize, &'a Graph)) -> Self {
+impl<'a, Ty> From<(usize, &'a Graph<Ty>)> for InnerGraph<'a, Ty>
+where
+    Ty: EdgeType,
+{
+    fn from(t: (usize, &'a Graph<Ty>)) -> Self {
         Self {
             index: t.0,
             graph: t.1,
@@ -187,8 +221,11 @@ impl<'a> From<(usize, &'a Graph)> for InnerGraph<'a> {
     }
 }
 
-impl From<petgraph::Graph<(), (), Directed, NodeIndexType>> for Graph {
-    fn from(g: petgraph::Graph<(), (), Directed, NodeIndexType>) -> Self {
+impl<Ty> From<petgraph::Graph<(), (), Ty, NodeIndexType>> for Graph<Ty>
+where
+    Ty: EdgeType,
+{
+    fn from(g: petgraph::Graph<(), (), Ty, NodeIndexType>) -> Self {
         Self(g)
     }
 }
@@ -196,10 +233,11 @@ impl From<petgraph::Graph<(), (), Directed, NodeIndexType>> for Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use petgraph::Directed;
 
     #[test]
     pub fn test_new_edge_adds_node() {
-        let mut g = Graph::default();
+        let mut g: Graph<Directed> = Graph::default();
         assert_eq!(0, g.n_nodes());
         assert_eq!(0, g.n_edges());
         g.new_edge(0, 1);
@@ -212,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_iter_edges() {
-        let g = Graph(petgraph::Graph::from_edges(&[(0, 1), (0, 0)]));
+        let g: Graph<Directed> = Graph(petgraph::Graph::from_edges(&[(0, 1), (0, 0)]));
         assert_eq!(
             vec![(0, 1), (0, 0)],
             g.iter_edges()
@@ -222,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_append_graph() {
-        let mut g0 = Graph(petgraph::Graph::from_edges(&[(0, 1)]));
+        let mut g0: Graph<Directed> = Graph(petgraph::Graph::from_edges(&[(0, 1)]));
         assert_eq!(2, g0.n_nodes());
         assert_eq!(
             vec![(0, 1)],

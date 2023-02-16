@@ -1,6 +1,7 @@
 use super::{BoxedGenerator, GeneratorFactory};
 use crate::{core::utils, Graph, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use petgraph::EdgeType;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
 /// A factory used to build generators for graphs following the [Watts-Strogatz](https://en.wikipedia.org/wiki/Watts%E2%80%93Strogatz_model) model.
@@ -14,9 +15,10 @@ use rand::{distributions::Uniform, prelude::Distribution, Rng};
 #[derive(Default)]
 pub struct WattsStrogatzGeneratorFactory;
 
-impl<R> NamedParam<BoxedGenerator<R>> for WattsStrogatzGeneratorFactory
+impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for WattsStrogatzGeneratorFactory
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "ws"
@@ -29,7 +31,7 @@ where
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a Watts-Strogatz generator";
         let (v, p) =
             utils::str_param_to_positive_integers_and_probability(params, 2).context(context)?;
@@ -48,9 +50,10 @@ where
     }
 }
 
-fn build_graph<R>(n: usize, k: usize, p: f64, r: &mut R) -> Graph
+fn build_graph<Ty, R>(n: usize, k: usize, p: f64, r: &mut R) -> Graph<Ty>
 where
     R: Rng,
+    Ty: EdgeType,
 {
     let mut g = Graph::with_capacity(n, n * k);
     (0..n).for_each(|i| {
@@ -81,46 +84,52 @@ where
     g
 }
 
-impl<R> GeneratorFactory<R> for WattsStrogatzGeneratorFactory where R: Rng {}
+impl<Ty, R> GeneratorFactory<Ty, R> for WattsStrogatzGeneratorFactory
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::NodeIndexType;
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_not_enough_params() {
         assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 2")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_too_much_params() {
         assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 2,0,0.5")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_k_is_not_even() {
         assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 1, 0.5")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_n_is_not_higher_than_k() {
         assert!((WattsStrogatzGeneratorFactory.try_with_params("2,2,0.5")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_p_is_zero_5_4() {
         let mut rng = rand::thread_rng();
-        let g = WattsStrogatzGeneratorFactory
+        let g: Graph<Directed> = WattsStrogatzGeneratorFactory
             .try_with_params("5,4,0")
             .unwrap()(&mut rng);
         let mut edges = g
@@ -147,7 +156,7 @@ mod tests {
     #[test]
     fn test_p_is_zero_3_2() {
         let mut rng = rand::thread_rng();
-        let g = WattsStrogatzGeneratorFactory
+        let g: Graph<Directed> = WattsStrogatzGeneratorFactory
             .try_with_params("3,2,0")
             .unwrap()(&mut rng);
         let mut edges = g
@@ -160,7 +169,7 @@ mod tests {
     #[test]
     fn test_p_is_one_3_2() {
         let mut rng = rand::thread_rng();
-        let g = WattsStrogatzGeneratorFactory
+        let g: Graph<Directed> = WattsStrogatzGeneratorFactory
             .try_with_params("3,2,1")
             .unwrap()(&mut rng);
         let mut edges = g

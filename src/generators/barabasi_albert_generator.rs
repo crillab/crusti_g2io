@@ -1,6 +1,7 @@
 use super::{BoxedGenerator, GeneratorFactory};
 use crate::{core::utils, NamedParam};
 use anyhow::{anyhow, Context, Result};
+use petgraph::EdgeType;
 use rand::Rng;
 
 /// A factory used to build generators for [Barabási-Albert](https://en.wikipedia.org/wiki/Barab%C3%A1si%E2%80%93Albert_model) graphs.
@@ -14,9 +15,10 @@ use rand::Rng;
 #[derive(Default)]
 pub struct BarabasiAlbertGeneratorFactory;
 
-impl<R> NamedParam<BoxedGenerator<R>> for BarabasiAlbertGeneratorFactory
+impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for BarabasiAlbertGeneratorFactory
 where
     R: Rng,
+    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "ba"
@@ -29,7 +31,7 @@ where
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a Barabasi-Albert generator";
         let int_params = utils::str_param_to_positive_integers(params).context(context)?;
         if let &[n, m] = int_params.as_slice() {
@@ -47,46 +49,52 @@ where
     }
 }
 
-impl<R> GeneratorFactory<R> for BarabasiAlbertGeneratorFactory where R: Rng {}
+impl<Ty, R> GeneratorFactory<Ty, R> for BarabasiAlbertGeneratorFactory
+where
+    R: Rng,
+    Ty: EdgeType,
+{
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::NodeIndexType;
+    use crate::{Graph, NodeIndexType};
+    use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_not_enough_params() {
         assert!((BarabasiAlbertGeneratorFactory.try_with_params("1")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_too_much_params() {
         assert!((BarabasiAlbertGeneratorFactory.try_with_params("2,1,0")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_m_is_zero() {
         assert!((BarabasiAlbertGeneratorFactory.try_with_params("2,0")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_n_is_not_higher_than_m() {
         assert!((BarabasiAlbertGeneratorFactory.try_with_params("2,2")
-            as Result<BoxedGenerator<ThreadRng>>)
+            as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_barabasi_star() {
         let mut rng = rand::thread_rng();
-        let g = BarabasiAlbertGeneratorFactory
+        let g: Graph<Directed> = BarabasiAlbertGeneratorFactory
             .try_with_params("4,3")
             .unwrap()(&mut rng);
         assert_eq!(
