@@ -37,8 +37,8 @@ pub trait Linker: NamedParam<BoxedLinker> {}
 
 lazy_static! {
     pub(crate) static ref LINKERS: [Box<dyn Linker + Sync>; 4] = [
-        Box::new(FirstToFirstLinker),
-        Box::new(BidirectionalFirstToFirstLinker),
+        Box::new(FirstToFirstLinker::default()),
+        Box::new(BidirectionalFirstToFirstLinker::default()),
         Box::new(MinIncomingLinker::default()),
         Box::new(BidirectionalMinIncomingLinker::default()),
     ];

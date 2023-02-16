@@ -61,11 +61,11 @@ where
 
 lazy_static! {
     pub(crate) static ref FACTORIES_THREAD_PCG32: [Box<dyn GeneratorFactory<Pcg32> + Sync>; 5] = [
-        Box::new(BarabasiAlbertGeneratorFactory),
-        Box::new(ChainGeneratorFactory),
-        Box::new(ErdosRenyiGeneratorFactory),
-        Box::new(TreeGeneratorFactory),
-        Box::new(WattsStrogatzGeneratorFactory),
+        Box::new(BarabasiAlbertGeneratorFactory::default()),
+        Box::new(ChainGeneratorFactory::default()),
+        Box::new(ErdosRenyiGeneratorFactory::default()),
+        Box::new(TreeGeneratorFactory::default()),
+        Box::new(WattsStrogatzGeneratorFactory::default()),
     ];
 }
 

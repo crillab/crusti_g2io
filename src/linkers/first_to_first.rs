@@ -27,6 +27,7 @@ impl Linker for FirstToFirstLinker {}
 /// A bidirectional linker that connects first nodes.
 ///
 /// Such linker can be created by passing `first_bi` to [`linkers::linker_from_str`](crate::linkers#linker_from_str).
+#[derive(Default)]
 pub struct BidirectionalFirstToFirstLinker;
 
 impl NamedParam<BoxedLinker> for BidirectionalFirstToFirstLinker {
