@@ -1,5 +1,8 @@
 use super::{BoxedLinker, Linker};
-use crate::{core::utils, InterGraphEdge, NamedParam};
+use crate::{
+    core::parameters::{ParameterParser, ParameterType},
+    InterGraphEdge, NamedParam,
+};
 use anyhow::{Context, Result};
 use petgraph::EdgeType;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
@@ -76,8 +79,9 @@ where
     Ty: EdgeType,
 {
     let context = "while building a random linker";
-    let (_, p) =
-        utils::str_param_to_positive_integers_and_probability(params, 0).context(context)?;
+    let parameter_parser = ParameterParser::new(vec![ParameterType::Probability]);
+    let parameter_values = parameter_parser.parse(params).context(context)?;
+    let p = parameter_values[0].unwrap_f64();
     Ok(Box::new(move |g1, g2, rng| {
         let proba_uniform = Uniform::new_inclusive(0., 1.);
         let mut estimated_cap = p * g1.graph().n_nodes() as f64 * g2.graph().n_nodes() as f64;

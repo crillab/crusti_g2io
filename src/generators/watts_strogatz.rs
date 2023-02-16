@@ -1,5 +1,8 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{core::utils, Graph, NamedParam};
+use crate::{
+    core::parameters::{ParameterParser, ParameterType},
+    Graph, NamedParam,
+};
 use anyhow::{anyhow, Context, Result};
 use petgraph::EdgeType;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
@@ -36,10 +39,15 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a Watts-Strogatz generator";
-        let (v, p) =
-            utils::str_param_to_positive_integers_and_probability(params, 2).context(context)?;
-        let n = v[0];
-        let k = v[1];
+        let parameter_parser = ParameterParser::new(vec![
+            ParameterType::PositiveInteger,
+            ParameterType::PositiveInteger,
+            ParameterType::Probability,
+        ]);
+        let parameter_values = parameter_parser.parse(params).context(context)?;
+        let n = parameter_values[0].unwrap_usize();
+        let k = parameter_values[1].unwrap_usize();
+        let p = parameter_values[2].unwrap_f64();
         if k & 1 == 1 {
             return Err(anyhow!(r#"second parameter ("k") must be even"#)).context(context);
         }

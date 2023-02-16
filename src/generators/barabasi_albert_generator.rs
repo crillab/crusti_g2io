@@ -1,5 +1,8 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{core::utils, NamedParam};
+use crate::{
+    core::parameters::{ParameterParser, ParameterType},
+    NamedParam,
+};
 use anyhow::{anyhow, Context, Result};
 use petgraph::EdgeType;
 use rand::Rng;
@@ -35,19 +38,22 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a Barabasi-Albert generator";
-        let int_params = utils::str_param_to_positive_integers(params).context(context)?;
-        if let &[n, m] = int_params.as_slice() {
-            if m == 0 || m >= n {
-                return Err(anyhow!(
-                    r#"second parameter ("m") must be higher than 0 and lower than the first one ("n")"#
-                )).context(context);
-            }
-            Ok(Box::new(move |r| {
-                petgraph_gen::barabasi_albert_graph(r, n, m, None).into()
-            }))
-        } else {
-            Err(anyhow!("expected exactly 2 parameters")).context(context)
+        let parameter_parser = ParameterParser::new(vec![
+            ParameterType::PositiveInteger,
+            ParameterType::PositiveInteger,
+        ]);
+        let parameter_values = parameter_parser.parse(params).context(context)?;
+        let n = parameter_values[0].unwrap_usize();
+        let m = parameter_values[1].unwrap_usize();
+        if m == 0 || m >= n {
+            return Err(anyhow!(
+                r#"second parameter ("m") must be higher than 0 and lower than the first one ("n")"#
+            ))
+            .context(context);
         }
+        Ok(Box::new(move |r| {
+            petgraph_gen::barabasi_albert_graph(r, n, m, None).into()
+        }))
     }
 }
 

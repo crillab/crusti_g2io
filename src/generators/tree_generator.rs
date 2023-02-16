@@ -1,6 +1,9 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{core::utils, Graph, NamedParam};
-use anyhow::{anyhow, Context, Result};
+use crate::{
+    core::parameters::{ParameterParser, ParameterType},
+    Graph, NamedParam,
+};
+use anyhow::{Context, Result};
 use petgraph::EdgeType;
 use rand::Rng;
 
@@ -31,32 +34,30 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building a tree generator";
-        let int_params = utils::str_param_to_positive_integers(params).context(context)?;
-        if let &[n] = int_params.as_slice() {
-            Ok(Box::new(move |_| match n {
-                0 => Graph::default(),
-                1 => {
-                    let mut g = Graph::with_capacity(1, 0);
-                    g.new_node();
-                    g
-                }
-                _ => {
-                    let mut g = Graph::with_capacity(n, 0);
-                    (0..n).for_each(|i| {
-                        if 2 * i + 1 < n {
-                            g.new_edge(i, 2 * i + 1);
-                        }
+        let parameter_parser = ParameterParser::new(vec![ParameterType::PositiveInteger]);
+        let parameter_values = parameter_parser.parse(params).context(context)?;
+        let n = parameter_values[0].unwrap_usize();
+        Ok(Box::new(move |_| match n {
+            0 => Graph::default(),
+            1 => {
+                let mut g = Graph::with_capacity(1, 0);
+                g.new_node();
+                g
+            }
+            _ => {
+                let mut g = Graph::with_capacity(n, 0);
+                (0..n).for_each(|i| {
+                    if 2 * i + 1 < n {
+                        g.new_edge(i, 2 * i + 1);
+                    }
 
-                        if 2 * i + 2 < n {
-                            g.new_edge(i, 2 * i + 2);
-                        }
-                    });
-                    g
-                }
-            }))
-        } else {
-            Err(anyhow!("expected exactly 1 parameter")).context(context)
-        }
+                    if 2 * i + 2 < n {
+                        g.new_edge(i, 2 * i + 2);
+                    }
+                });
+                g
+            }
+        }))
     }
 }
 

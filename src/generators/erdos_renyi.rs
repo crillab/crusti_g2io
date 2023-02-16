@@ -1,5 +1,8 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{core::utils, NamedParam};
+use crate::{
+    core::parameters::{ParameterParser, ParameterType},
+    NamedParam,
+};
 use anyhow::{Context, Result};
 use petgraph::EdgeType;
 use rand::Rng;
@@ -35,10 +38,15 @@ where
 
     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
         let context = "while building an Erdős–Rényi generator";
-        let (v, p) =
-            utils::str_param_to_positive_integers_and_probability(params, 1).context(context)?;
+        let parameter_parser = ParameterParser::new(vec![
+            ParameterType::PositiveInteger,
+            ParameterType::Probability,
+        ]);
+        let parameter_values = parameter_parser.parse(params).context(context)?;
+        let n = parameter_values[0].unwrap_usize();
+        let p = parameter_values[1].unwrap_f64();
         Ok(Box::new(move |r| {
-            petgraph_gen::random_gnp_graph(r, v[0], p).into()
+            petgraph_gen::random_gnp_graph(r, n, p).into()
         }))
     }
 }
