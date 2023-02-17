@@ -4,7 +4,7 @@ use crate::{
     InterGraphEdge, NamedParam,
 };
 use anyhow::{Context, Result};
-use petgraph::EdgeType;
+use petgraph::{Directed, EdgeType};
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
 /// A linker that connects the nodes from the first graph to the ones of the second graph in a random fashion.
@@ -48,10 +48,9 @@ where
 #[derive(Default)]
 pub struct BidirectionalRandomLinker;
 
-impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for BidirectionalRandomLinker
+impl<R> NamedParam<BoxedLinker<Directed, R>> for BidirectionalRandomLinker
 where
     R: Rng,
-    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "random_bi"
@@ -61,17 +60,12 @@ where
         vec!["Links the nodes from the first graph to the ones of the second graph in a random fashion, and vice-versa.", "The probability each arc is set is given by the first parameter."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Directed, R>> {
         try_with_params(params, true)
     }
 }
 
-impl<Ty, R> Linker<Ty, R> for BidirectionalRandomLinker
-where
-    R: Rng,
-    Ty: EdgeType,
-{
-}
+impl<R> Linker<Directed, R> for BidirectionalRandomLinker where R: Rng {}
 
 fn try_with_params<Ty, R>(params: &str, bidirectional: bool) -> Result<BoxedLinker<Ty, R>>
 where

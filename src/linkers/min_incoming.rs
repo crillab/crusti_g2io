@@ -1,7 +1,7 @@
 use super::{BoxedLinker, Linker};
 use crate::{core::InnerGraph, InterGraphEdge, NamedParam};
 use anyhow::{anyhow, Context, Result};
-use petgraph::EdgeType;
+use petgraph::{Directed, EdgeType};
 use rand::Rng;
 use std::sync::{Arc, Mutex};
 
@@ -48,10 +48,9 @@ pub struct BidirectionalMinIncomingLinker {
     min_incoming_cache: Cache,
 }
 
-impl<Ty, R> NamedParam<BoxedLinker<Ty, R>> for BidirectionalMinIncomingLinker
+impl<R> NamedParam<BoxedLinker<Directed, R>> for BidirectionalMinIncomingLinker
 where
     R: Rng,
-    Ty: EdgeType,
 {
     fn name(&self) -> &'static str {
         "min_incoming_bi"
@@ -61,17 +60,12 @@ where
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property, and vice-versa."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
+    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Directed, R>> {
         try_with_params(params, Arc::clone(&self.min_incoming_cache), true)
     }
 }
 
-impl<Ty, R> Linker<Ty, R> for BidirectionalMinIncomingLinker
-where
-    R: Rng,
-    Ty: EdgeType,
-{
-}
+impl<R> Linker<Directed, R> for BidirectionalMinIncomingLinker where R: Rng {}
 
 fn try_with_params<Ty, R>(
     params: &str,

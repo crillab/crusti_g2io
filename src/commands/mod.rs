@@ -2,8 +2,8 @@ mod generate_command;
 pub use generate_command::{GenerateDirectedCommand, GenerateUndirectedCommand};
 
 mod listings_commands;
-pub use listings_commands::GeneratorsCommand;
-pub use listings_commands::LinkersCommand;
+pub use listings_commands::{GeneratorsDirectedCommand, GeneratorsUndirectedCommand};
+pub use listings_commands::{LinkersDirectedCommand, LinkersUndirectedCommand};
 
 use crusti_app_helper::Arg;
 

@@ -3,61 +3,63 @@ use anyhow::Result;
 use crusti_app_helper::{App, AppSettings, ArgMatches, Command, SubCommand};
 use crusti_g2io::{generators, linkers, NamedParam};
 
-const CMD_NAME_GENERATORS: &str = "generators";
+macro_rules! listing_cmd {
+    ($cmd_ident:ident, $cmd_name:expr, $cmd_description:expr, $listing_fn:expr) => {
+        pub struct $cmd_ident;
 
-pub struct GeneratorsCommand;
+        impl $cmd_ident {
+            pub(crate) fn new() -> Self {
+                Self
+            }
+        }
 
-impl GeneratorsCommand {
-    pub(crate) fn new() -> Self {
-        GeneratorsCommand
-    }
+        impl<'a> Command<'a> for $cmd_ident {
+            fn name(&self) -> &str {
+                $cmd_name
+            }
+
+            fn clap_subcommand(&self) -> App<'a, 'a> {
+                SubCommand::with_name($cmd_name)
+                    .about($cmd_description)
+                    .setting(AppSettings::DisableVersion)
+                    .arg(logging_level_arg())
+            }
+
+            fn execute(&self, _arg_matches: &ArgMatches<'_>) -> Result<()> {
+                print_listing($listing_fn);
+                Ok(())
+            }
+        }
+    };
 }
 
-impl<'a> Command<'a> for GeneratorsCommand {
-    fn name(&self) -> &str {
-        CMD_NAME_GENERATORS
-    }
+listing_cmd!(
+    GeneratorsDirectedCommand,
+    "generators-directed",
+    "Lists the available directed graph generators",
+    generators::iter_directed_generator_factories()
+);
 
-    fn clap_subcommand(&self) -> App<'a, 'a> {
-        SubCommand::with_name(CMD_NAME_GENERATORS)
-            .about("Lists the available graph generators")
-            .setting(AppSettings::DisableVersion)
-            .arg(logging_level_arg())
-    }
+listing_cmd!(
+    GeneratorsUndirectedCommand,
+    "generators-undirected",
+    "Lists the available undirected graph generators",
+    generators::iter_undirected_generator_factories()
+);
 
-    fn execute(&self, _arg_matches: &ArgMatches<'_>) -> Result<()> {
-        print_listing(generators::iter_directed_generator_factories());
-        Ok(())
-    }
-}
+listing_cmd!(
+    LinkersDirectedCommand,
+    "linkers-directed",
+    "Lists the available linkers for directed graphs",
+    linkers::iter_directed_linkers()
+);
 
-const CMD_NAME_LINKERS: &str = "linkers";
-
-pub struct LinkersCommand;
-
-impl LinkersCommand {
-    pub(crate) fn new() -> Self {
-        LinkersCommand
-    }
-}
-
-impl<'a> Command<'a> for LinkersCommand {
-    fn name(&self) -> &str {
-        CMD_NAME_LINKERS
-    }
-
-    fn clap_subcommand(&self) -> App<'a, 'a> {
-        SubCommand::with_name(CMD_NAME_LINKERS)
-            .about("Lists the available linkers")
-            .setting(AppSettings::DisableVersion)
-            .arg(logging_level_arg())
-    }
-
-    fn execute(&self, _arg_matches: &ArgMatches<'_>) -> Result<()> {
-        print_listing(linkers::iter_directed_linkers());
-        Ok(())
-    }
-}
+listing_cmd!(
+    LinkersUndirectedCommand,
+    "linkers-undirected",
+    "Lists the available linkers for undirected graphs",
+    linkers::iter_undirected_linkers()
+);
 
 fn print_listing<I, S, T>(collection: I)
 where

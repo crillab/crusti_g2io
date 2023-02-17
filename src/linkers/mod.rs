@@ -57,13 +57,10 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub(crate) static ref LINKERS_UNDIRECTED_PCG32: [Box<dyn Linker<Undirected, Pcg32> + Sync>; 6] = [
+    pub(crate) static ref LINKERS_UNDIRECTED_PCG32: [Box<dyn Linker<Undirected, Pcg32> + Sync>; 3] = [
         Box::new(FirstToFirstLinker::default()),
-        Box::new(BidirectionalFirstToFirstLinker::default()),
         Box::new(MinIncomingLinker::default()),
-        Box::new(BidirectionalMinIncomingLinker::default()),
         Box::new(RandomLinker::default()),
-        Box::new(BidirectionalRandomLinker::default()),
     ];
 }
 

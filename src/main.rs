@@ -1,7 +1,8 @@
 mod commands;
 
 use commands::{
-    GenerateDirectedCommand, GenerateUndirectedCommand, GeneratorsCommand, LinkersCommand,
+    GenerateDirectedCommand, GenerateUndirectedCommand, GeneratorsDirectedCommand,
+    GeneratorsUndirectedCommand, LinkersDirectedCommand, LinkersUndirectedCommand,
 };
 use crusti_app_helper::{AppHelper, Command};
 
@@ -18,8 +19,10 @@ pub(crate) fn create_app_helper() -> AppHelper<'static> {
     let commands: Vec<Box<dyn Command>> = vec![
         Box::new(GenerateDirectedCommand::new()),
         Box::new(GenerateUndirectedCommand::new()),
-        Box::new(GeneratorsCommand::new()),
-        Box::new(LinkersCommand::new()),
+        Box::new(GeneratorsDirectedCommand::new()),
+        Box::new(GeneratorsUndirectedCommand::new()),
+        Box::new(LinkersDirectedCommand::new()),
+        Box::new(LinkersUndirectedCommand::new()),
     ];
     for c in commands {
         app.add_command(c);
