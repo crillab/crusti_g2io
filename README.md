@@ -64,6 +64,10 @@ Although this app can take advantage of several processor cores, using the same 
 
 The processor cores management is let to the [rayon crate](https://crates.io/crates/rayon).
 
+## Adding generators, linkers and output format
+
+This app and its related library are built with the aim of being easily extended, by adding new generators and linkers. In the API documentation (`cargo doc --open`), see the documentation of the `generators`, `linkers` and `display` modules for more information.
+
 ## License
 
 This software is developed at CRIL (Centre de Recherche en Informatique de Lens).

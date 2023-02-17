@@ -15,6 +15,182 @@
 //! // building another graph with the same generator
 //! let g2 = generator(&mut rng);
 //! ```
+//!
+//! # Setting up a new generator factory
+//!
+//! To create a new generator factory and use it with crusti_g2io, you have to follow these two steps:
+//!
+//! 1. Write your generator factory in a dedicated `.rs` file in the `src/generators`
+//! 2. Register them in the `generators` module
+//!
+//! In this section, we rewrite the [`ChainGeneratorFactory`].
+//!
+//! The first step in to create the file `src/generators/chain_generator.rs`, and register it in `src/generators/mod.rs` by adding the line
+//!
+//! ```compile_fail
+//! mod chain_generator;
+//! ```
+//!
+//! Registering it before writing it will let your IDE try to compile it and show you the potential issues in your code.
+//! Now, it is time to write the code of the factory in `src/generators/chain_generator.rs`.
+//!
+//! A generator factory in an object with a name and a description, that provides a function (the generator) that generates graphs given a pseudorandom number generator (PRNG).
+//! Typically, this kind of object does not need fields; we can so declare it as an empty structure and make it derive the [`Default`] trait.
+//! Deriving this trait creates the `default` function which returns a new instance of the factory.
+//!
+//! ```
+//! #[derive(Default)]
+//! pub struct ChainGeneratorFactory;
+//! ```
+//!
+//! A generator factory is a structure that implements the [`GeneratorFactory`] trait, which itself inherits from [`NamedParam`]`.
+//! Let's write the two trait implementations with their functions left unimplemented.
+//!
+//! ```compile_fail
+//! impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for ChainGeneratorFactory
+//! where
+//!     Ty: EdgeType,
+//! {
+//!     fn name(&self) -> &'static str {
+//!         todo!()
+//!     }
+//!
+//!     fn description(&self) -> Vec<&'static str> {
+//!         todo!()
+//!     }
+//!
+//!     fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
+//!         todo!()
+//!     }
+//! }
+//!
+//! impl<Ty, R> GeneratorFactory<Ty, R> for ChainGeneratorFactory
+//! where
+//!     R: Rng,
+//!     Ty: EdgeType,
+//! {
+//! }
+//! ```
+//!
+//! First, we can see that [`GeneratorFactory`] does not add functions to implement.
+//! We can focus on [`NamedParam`] only.
+//!
+//! The `name` function must simply return a string that gives the factory name used for the CLI.
+//! The `description` function returns a list of strings that are displayed when listing the generator factories using the CLI, one string per line.
+//! Their implementations are straightforward.
+//!
+//! ```compile_fail
+//!     fn name(&self) -> &'static str {
+//!         "chain"
+//!     }
+//!
+//!     fn description(&self) -> Vec<&'static str> {
+//!         vec![
+//!             "A generator producing a chain of nodes.",
+//!             "The first parameter gives the length of the chain.",
+//!         ]
+//!     }
+//! ```
+//!
+//! The only function that is not trivial to implement is `try_with_params`.
+//! Do not fear its return type; it is just either en error or a closure allocated on the heap.
+//! The closure is the generator: given the context built upon the parameters given through the CLI, it produce a graph from a PRNG.
+//!
+//! First, `try_with_params` must check the parameters given by the user.
+//! If they are not correct, the function returns an error.
+//! We developed a parameter parser that helps with this process.
+//! In the case of the [`ChainGeneratorFactory`], we expect parameters to contain a single positive integer.
+//! Thus, we construct a `ParameterParser` for a single `ParameterType::PositiveInteger` (line 1),
+//! then we load the parameter values from the parameter string and return an error if something is wrong in it (line 2),
+//! and finally set the value of the parameter as a [`usize`] in variable `n`.
+//!
+//! ```compile_fail
+//! let parameter_parser = ParameterParser::new(vec![ParameterType::PositiveInteger]);
+//! let parameter_values = parameter_parser.parse(params)?;
+//! let n = parameter_values[0].unwrap_usize();
+//! ```
+//!
+//! The generator must produce chains of `n` nodes, for any (unused) PRNG.
+//! That is, if `n` is 0, the function must return an empty graph.
+//! For `n` equal to one, a graph containing a single noe must be returned.
+//! For higher values of `n`, the graph must contain `n` nodes and edges for each couple of nodes `(i, i+1)`.
+//! In the latter case, note that the edge addition is enough to declare the nodes.
+//!
+//! ```compile_fail
+//! move |prng| match n {
+//!     0 => Graph::default(),
+//!     1 => {
+//!         let mut g = Graph::with_capacity(1, 0);
+//!         g.new_node();
+//!         g
+//!     }
+//!     _ => {
+//!         let mut g = Graph::with_capacity(n, n - 1);
+//!         (0..n - 1).for_each(|i| g.new_edge(i, i + 1));
+//!         g
+//!     }
+//! }
+//! ```
+//!
+//! In this closure, as `prng` is not used, it should be prefixed or replaced by `_`.
+//! Finally, to match the return type, the closure must be encapsulated by a [`Box`] (to set it on the heap) and by `Ok` (to translate it into a successful result).
+//! Altogether, our function can be written this way:
+//!
+//! ```compile_fail
+//! fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
+//!     let parameter_parser = ParameterParser::new(vec![ParameterType::PositiveInteger]);
+//!     let parameter_values = parameter_parser.parse(params)?;
+//!     let n = parameter_values[0].unwrap_usize();
+//!     Ok(Box::new(move |_| match n {
+//!         0 => Graph::default(),
+//!         1 => {
+//!             let mut g = Graph::with_capacity(1, 0);
+//!             g.new_node();
+//!             g
+//!         }
+//!         _ => {
+//!             let mut g = Graph::with_capacity(n, n - 1);
+//!             (0..n - 1).for_each(|i| g.new_edge(i, i + 1));
+//!             g
+//!         }
+//!     }))
+//! }
+//! ```
+//!
+//! Interestingly, this generator is able to produce both undirected and directed graphs.
+//! The only difference is the semantics of the [`new_edge`](crate::Graph#method.new_edge) function, which produce a an undirected or a directed edge, depending on the context.
+//! In case the kind of graph is important, one can check the Boolean value returned by `Ty::is_directed()`.
+//!
+//! Finally, the last step is to register the generator factory into `src/generators/mod.rs`.
+//! To do this, import the factory into `mod.rs` with a `use` statement:
+//!
+//! ```compile_fail
+//! pub use chain_generator::ChainGeneratorFactory;
+//! ```
+//!
+//! And add it to the set of undirected and directed factories :
+//!
+//! ```compile_fail
+//! lazy_static! {
+//!     pub(crate) static ref GENERATOR_FACTORIES_DIRECTED_PCG32: [Box<dyn GeneratorFactory<Directed, Pcg32> + Sync>; 5] = [
+//!         Box::new(BarabasiAlbertGeneratorFactory::default()),
+//!         Box::new(ErdosRenyiGeneratorFactory::default()),
+//!         Box::new(TreeGeneratorFactory::default()),
+//!         Box::new(WattsStrogatzGeneratorFactory::default()),
+//!         Box::new(ChainGeneratorFactory::default()),
+//!     ];
+//! }
+//!
+//! lazy_static! {
+//!     pub(crate) static ref GENERATOR_FACTORIES_UNDIRECTED_PCG32: [Box<dyn GeneratorFactory<Undirected, Pcg32> + Sync>; 5] = [
+//!         Box::new(BarabasiAlbertGeneratorFactory::default()),
+//!         Box::new(ErdosRenyiGeneratorFactory::default()),
+//!         Box::new(TreeGeneratorFactory::default()),
+//!         Box::new(WattsStrogatzGeneratorFactory::default()),
+//!         Box::new(ChainGeneratorFactory::default()),
+//!     ];
+//! }
+//! ```
 
 mod barabasi_albert_generator;
 pub use barabasi_albert_generator::BarabasiAlbertGeneratorFactory;

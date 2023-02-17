@@ -5,9 +5,31 @@
 //! ```
 //! # use crusti_g2io::linkers;
 //! // building a linker that links the first nodes on each graph together.
-//! let linker = linkers::directed_linker_from_str("first_bi").unwrap();
+//! let linker = linkers::directed_linker_from_str("first").unwrap();
 //! // the linker can then be used to link graphs
 //! ```
+//!
+//! # Setting up a new linker
+//!
+//! Setting up a new linker is pretty similar to [setting up a new generator factory](crate::generators).
+//!
+//! The first difference is that all the files are located in `src/linkers` instead of `src/generators`.
+//! The second one is that the empty trait to "implement" is [`Linker`] and not [`crate::generators::GeneratorFactory`].
+//! The third one is the name of the collections of linkers in `src/linkers/mod.rs` (`LINKERS_UNDIRECTED_PCG32` and `LINKERS_DIRECTED_PCG32`).
+//! The only real difference is in the implementation of the `try_with_params` function.
+//!
+//! The handling of the linker parameters is the same.
+//! But this time, the returned closure takes two graph references and a PRNG and returns a set of inter-graph edges.
+//! The graph references are in fact structures with the index of the inner graph, and a reference to it.
+//! Inter-graph edges are built thanks to an enum ([`InterGraphEdge`]) which has two values:
+//!
+//! * [`InterGraphEdge::FirstToSecond`] if the edge source if the first graph given, and the target is the second
+//! * [`InterGraphEdge::SecondToFirst`] if the source and the target are inverted.
+//!
+//! In an undirected context, both values acts in a similar way (but only one should be added).
+//!
+//! Note that using [interior mutability](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html), one can rely on the indices of the inner graph to eg. cache information in the structure.
+//! See the source code of the [`MinIncomingLinker`] to get an example of such caching methods.
 
 mod first_to_first;
 pub use first_to_first::{BidirectionalFirstToFirstLinker, FirstToFirstLinker};
