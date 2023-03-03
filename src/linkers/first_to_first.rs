@@ -1,6 +1,6 @@
 use super::{BoxedLinker, Linker};
-use crate::{InterGraphEdge, NamedParam};
-use anyhow::{anyhow, Context, Result};
+use crate::{InterGraphEdge, NamedParam, ParameterType, ParameterValue};
+use anyhow::Result;
 use petgraph::{Directed, EdgeType};
 use rand::Rng;
 
@@ -23,8 +23,15 @@ where
         vec!["Links the lowest index node of the first graph to the lowest index node of the second graph."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
-        try_with_params(params, false)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![]
+    }
+
+    fn try_with_params(
+        &self,
+        _parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedLinker<Ty, R>> {
+        try_with_params(false)
     }
 }
 
@@ -53,22 +60,25 @@ where
         vec!["Links the lowest index node of the first graph to the lowest index node of the second graph, and vice-versa."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Directed, R>> {
-        try_with_params(params, true)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![]
+    }
+
+    fn try_with_params(
+        &self,
+        _parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedLinker<Directed, R>> {
+        try_with_params(true)
     }
 }
 
 impl<R> Linker<Directed, R> for BidirectionalFirstToFirstLinker where R: Rng {}
 
-fn try_with_params<Ty, R>(params: &str, bidirectional: bool) -> Result<BoxedLinker<Ty, R>>
+fn try_with_params<Ty, R>(bidirectional: bool) -> Result<BoxedLinker<Ty, R>>
 where
     R: Rng,
     Ty: EdgeType,
 {
-    let context = "while building a first-to-first linker";
-    if !params.is_empty() {
-        return Err(anyhow!("unexpected parameter(s)")).context(context);
-    }
     Ok(Box::new(move |_, _, _| {
         if bidirectional {
             vec![
@@ -89,20 +99,14 @@ mod tests {
     use rand::rngs::ThreadRng;
 
     #[test]
-    fn test_f2f_too_much_params() {
-        assert!((FirstToFirstLinker.try_with_params("1")
-            as Result<BoxedLinker<Directed, ThreadRng>>)
-            .is_err());
-    }
-
-    #[test]
     fn test_f2f_ok() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = FirstToFirstLinker.try_with_params("").unwrap();
+        let linker = FirstToFirstLinker.try_with_params(vec![]).unwrap();
         assert_eq!(
             vec![InterGraphEdge::FirstToSecond(0, 0)],
             linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
@@ -110,20 +114,16 @@ mod tests {
     }
 
     #[test]
-    fn test_f2f_bi_too_much_params() {
-        assert!((BidirectionalFirstToFirstLinker.try_with_params("1")
-            as Result<BoxedLinker<Directed, ThreadRng>>)
-            .is_err());
-    }
-
-    #[test]
     fn test_f2f_bi_ok() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = BidirectionalFirstToFirstLinker.try_with_params("").unwrap();
+        let linker = BidirectionalFirstToFirstLinker
+            .try_with_params(vec![])
+            .unwrap();
         assert_eq!(
             vec![
                 InterGraphEdge::FirstToSecond(0, 0),

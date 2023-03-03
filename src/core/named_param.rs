@@ -1,4 +1,7 @@
+use crate::{ParameterType, ParameterValue};
 use anyhow::{anyhow, Context, Result};
+
+use super::parameters::ParameterParser;
 
 /// A trait for CLI parameters which available values are named alternatives, eg. generators and linkers.
 ///
@@ -8,7 +11,7 @@ use anyhow::{anyhow, Context, Result};
 /// See [`ChainGeneratorFactory`](crate::ChainGeneratorFactory) source code for a straightforward implementation of this trait.
 ///
 /// ```
-/// use crusti_g2io::generators;
+/// use crusti_g2io::{generators, ParameterValue};
 /// use rand_core::SeedableRng;
 ///
 /// // displaying the available generators
@@ -24,7 +27,7 @@ use anyhow::{anyhow, Context, Result};
 /// let generator_factory = generators::iter_directed_generator_factories()
 ///     .find(|f| f.name() == "chain")
 ///     .unwrap();
-/// let generator = generator_factory.try_with_params("3").unwrap();
+/// let generator = generator_factory.try_with_params(vec![ParameterValue::PositiveInteger(3)]).unwrap();
 /// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
 pub trait NamedParam<T> {
@@ -36,12 +39,15 @@ pub trait NamedParam<T> {
     /// The description is returned as a vector of strings, each containing a logical portion of the description.
     fn description(&self) -> Vec<&'static str>;
 
-    /// Tries to build an instance of the related alternative given the string parameter.
+    /// Returns the types of the expected parameters.
     ///
-    /// The string parameter may be a comma separated value splitting multiple effective parameters.
-    /// In case an instance cannot be build with such parameters (wrong count of effective parameters, wrong value for at least one of it),
-    /// an error is returned.
-    fn try_with_params(&self, params: &str) -> Result<T>;
+    /// In case this objects expect no parameter, this function must return an empty vector.
+    fn expected_parameter_types(&self) -> Vec<ParameterType>;
+
+    /// Tries to build an instance of the related alternative given the parameters.
+    ///
+    /// The parameter must be computed from the expected types returned by `expected_parameter_types` and a string that concatenate the parameters values split by commas.
+    fn try_with_params(&self, parameter_values: Vec<ParameterValue>) -> Result<T>;
 }
 
 pub(crate) fn named_from_str<T, S>(collection: &[Box<S>], s: &str) -> Result<T>
@@ -55,7 +61,19 @@ where
     };
     for named_factory in collection.iter() {
         if named_factory.name() == kind {
-            return named_factory.try_with_params(str_params).context(context);
+            let parameter_parser = ParameterParser::new(named_factory.expected_parameter_types());
+            let parameter_values = parameter_parser
+                .parse(str_params)
+                .with_context(|| {
+                    format!(
+                        r#"while evaluating the parameters for a "{}" generator"#,
+                        kind
+                    )
+                })
+                .context(context)?;
+            return named_factory
+                .try_with_params(parameter_values)
+                .context(context);
         }
     }
     Err(anyhow!(r#"unknown named object "{}""#, s)).context(context)

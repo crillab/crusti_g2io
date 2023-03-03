@@ -156,4 +156,14 @@ mod tests {
     fn test_linker_too_much_params() {
         assert!(directed_linker_from_str("first/1").is_err());
     }
+
+    #[test]
+    fn test_linker_not_enough_params() {
+        assert!(directed_linker_from_str("random").is_err());
+    }
+
+    #[test]
+    fn test_linker_wrong_types_params() {
+        assert!(directed_linker_from_str("random/2").is_err());
+    }
 }

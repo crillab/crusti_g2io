@@ -11,4 +11,6 @@ pub use inner_outer_generator::InnerOuterGenerator;
 pub mod named_param;
 pub use named_param::NamedParam;
 
-pub(crate) mod parameters;
+mod parameters;
+pub use parameters::ParameterType;
+pub use parameters::ParameterValue;

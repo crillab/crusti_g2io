@@ -1,6 +1,6 @@
 use super::{BoxedLinker, Linker};
-use crate::{core::InnerGraph, InterGraphEdge, NamedParam};
-use anyhow::{anyhow, Context, Result};
+use crate::{core::InnerGraph, InterGraphEdge, NamedParam, ParameterType, ParameterValue};
+use anyhow::Result;
 use petgraph::{Directed, EdgeType};
 use rand::Rng;
 use std::sync::{Arc, Mutex};
@@ -28,8 +28,15 @@ where
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
-        try_with_params(params, Arc::clone(&self.min_incoming_cache), false)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![]
+    }
+
+    fn try_with_params(
+        &self,
+        _parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedLinker<Ty, R>> {
+        try_with_params(Arc::clone(&self.min_incoming_cache), false)
     }
 }
 
@@ -60,15 +67,21 @@ where
         vec!["Links the nodes of the first graph with the lowest count of incoming edges to the nodes of the second graph with the same property, and vice-versa."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Directed, R>> {
-        try_with_params(params, Arc::clone(&self.min_incoming_cache), true)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![]
+    }
+
+    fn try_with_params(
+        &self,
+        _parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedLinker<Directed, R>> {
+        try_with_params(Arc::clone(&self.min_incoming_cache), true)
     }
 }
 
 impl<R> Linker<Directed, R> for BidirectionalMinIncomingLinker where R: Rng {}
 
 fn try_with_params<Ty, R>(
-    params: &str,
     min_incoming_cache: Cache,
     bidirectional: bool,
 ) -> Result<BoxedLinker<Ty, R>>
@@ -76,10 +89,6 @@ where
     R: Rng,
     Ty: EdgeType,
 {
-    let context = "while building a sources linker";
-    if !params.is_empty() {
-        return Err(anyhow!("unexpected parameter(s)")).context(context);
-    }
     Ok(Box::new(move |g1, g2, _| {
         let min_incoming_1 = compute_min_incoming(&g1, Arc::clone(&min_incoming_cache));
         let min_incoming_2 = compute_min_incoming(&g2, Arc::clone(&min_incoming_cache));
@@ -127,14 +136,6 @@ mod tests {
     use super::*;
     use crate::Graph;
     use petgraph::Directed;
-    use rand::rngs::ThreadRng;
-
-    #[test]
-    fn test_min_incoming_too_much_params() {
-        assert!((MinIncomingLinker::default().try_with_params("1")
-            as Result<BoxedLinker<Directed, ThreadRng>>)
-            .is_err());
-    }
 
     #[test]
     fn test_min_incoming_ok() {
@@ -143,22 +144,15 @@ mod tests {
         g0.new_node();
         let mut g1 = Graph::default();
         g1.new_edge(0, 1);
-        let linker = MinIncomingLinker::default().try_with_params("").unwrap();
+        let linker = MinIncomingLinker::default()
+            .try_with_params(vec![])
+            .unwrap();
         assert_eq!(
             vec![
                 InterGraphEdge::FirstToSecond(0, 0),
                 InterGraphEdge::FirstToSecond(1, 0)
             ],
             linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
-        );
-    }
-
-    #[test]
-    fn test_min_incoming_bi_too_much_params() {
-        assert!(
-            (BidirectionalMinIncomingLinker::default().try_with_params("1")
-                as Result<BoxedLinker<Directed, ThreadRng>>)
-                .is_err()
         );
     }
 
@@ -170,7 +164,7 @@ mod tests {
         let mut g1 = Graph::default();
         g1.new_edge(0, 1);
         let linker = BidirectionalMinIncomingLinker::default()
-            .try_with_params("")
+            .try_with_params(vec![])
             .unwrap();
         assert_eq!(
             vec![

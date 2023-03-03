@@ -1,9 +1,6 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{
-    core::parameters::{ParameterParser, ParameterType},
-    Graph, NamedParam,
-};
-use anyhow::{Context, Result};
+use crate::{Graph, NamedParam, ParameterType, ParameterValue};
+use anyhow::Result;
 use petgraph::EdgeType;
 use rand::Rng;
 
@@ -32,10 +29,14 @@ where
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
-        let context = "while building a tree generator";
-        let parameter_parser = ParameterParser::new(vec![ParameterType::PositiveInteger]);
-        let parameter_values = parameter_parser.parse(params).context(context)?;
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![ParameterType::PositiveInteger]
+    }
+
+    fn try_with_params(
+        &self,
+        parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedGenerator<Ty, R>> {
         let n = parameter_values[0].unwrap_usize();
         Ok(Box::new(move |_| match n {
             0 => Graph::default(),
@@ -73,26 +74,13 @@ mod tests {
     use super::*;
     use crate::NodeIndexType;
     use petgraph::Directed;
-    use rand::rngs::ThreadRng;
-
-    #[test]
-    fn test_not_enough_params() {
-        assert!((TreeGeneratorFactory.try_with_params("")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
-            .is_err())
-    }
-
-    #[test]
-    fn test_too_much_params() {
-        assert!((TreeGeneratorFactory.try_with_params("1,1")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
-            .is_err())
-    }
 
     #[test]
     fn test_tree_of_zero() {
         let mut rng = rand::thread_rng();
-        let g: Graph<Directed> = TreeGeneratorFactory.try_with_params("0").unwrap()(&mut rng);
+        let g: Graph<Directed> = TreeGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(0)])
+            .unwrap()(&mut rng);
         assert_eq!(0, g.n_nodes());
         assert_eq!(0, g.n_edges());
     }
@@ -100,7 +88,9 @@ mod tests {
     #[test]
     fn test_tree_of_one() {
         let mut rng = rand::thread_rng();
-        let g: Graph<Directed> = TreeGeneratorFactory.try_with_params("1").unwrap()(&mut rng);
+        let g: Graph<Directed> = TreeGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(1)])
+            .unwrap()(&mut rng);
         assert_eq!(1, g.n_nodes());
         assert_eq!(0, g.n_edges());
     }
@@ -108,7 +98,9 @@ mod tests {
     #[test]
     fn test_tree() {
         let mut rng = rand::thread_rng();
-        let g: Graph<Directed> = TreeGeneratorFactory.try_with_params("4").unwrap()(&mut rng);
+        let g: Graph<Directed> = TreeGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(4)])
+            .unwrap()(&mut rng);
         assert_eq!(4, g.n_nodes());
         assert_eq!(
             vec![(0, 1), (0, 2), (1, 3)],

@@ -1,8 +1,5 @@
 use super::{BoxedGenerator, GeneratorFactory};
-use crate::{
-    core::parameters::{ParameterParser, ParameterType},
-    Graph, NamedParam,
-};
+use crate::{Graph, NamedParam, ParameterType, ParameterValue};
 use anyhow::{anyhow, Context, Result};
 use petgraph::EdgeType;
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
@@ -37,14 +34,19 @@ where
         ]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedGenerator<Ty, R>> {
-        let context = "while building a Watts-Strogatz generator";
-        let parameter_parser = ParameterParser::new(vec![
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![
             ParameterType::PositiveInteger,
             ParameterType::PositiveInteger,
             ParameterType::Probability,
-        ]);
-        let parameter_values = parameter_parser.parse(params).context(context)?;
+        ]
+    }
+
+    fn try_with_params(
+        &self,
+        parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedGenerator<Ty, R>> {
+        let context = "while building a Watts-Strogatz generator";
         let n = parameter_values[0].unwrap_usize();
         let k = parameter_values[1].unwrap_usize();
         let p = parameter_values[2].unwrap_f64();
@@ -110,30 +112,22 @@ mod tests {
     use rand::rngs::ThreadRng;
 
     #[test]
-    fn test_not_enough_params() {
-        assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 2")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
-            .is_err())
-    }
-
-    #[test]
-    fn test_too_much_params() {
-        assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 2,0,0.5")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
-            .is_err())
-    }
-
-    #[test]
     fn test_k_is_not_even() {
-        assert!((WattsStrogatzGeneratorFactory.try_with_params("3, 1, 0.5")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
+        assert!((WattsStrogatzGeneratorFactory.try_with_params(vec![
+            ParameterValue::PositiveInteger(3),
+            ParameterValue::PositiveInteger(1),
+            ParameterValue::Probability(0.5)
+        ]) as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
     #[test]
     fn test_n_is_not_higher_than_k() {
-        assert!((WattsStrogatzGeneratorFactory.try_with_params("2,2,0.5")
-            as Result<BoxedGenerator<Directed, ThreadRng>>)
+        assert!((WattsStrogatzGeneratorFactory.try_with_params(vec![
+            ParameterValue::PositiveInteger(2),
+            ParameterValue::PositiveInteger(2),
+            ParameterValue::Probability(0.5)
+        ]) as Result<BoxedGenerator<Directed, ThreadRng>>)
             .is_err())
     }
 
@@ -141,7 +135,11 @@ mod tests {
     fn test_p_is_zero_5_4() {
         let mut rng = rand::thread_rng();
         let g: Graph<Directed> = WattsStrogatzGeneratorFactory
-            .try_with_params("5,4,0")
+            .try_with_params(vec![
+                ParameterValue::PositiveInteger(5),
+                ParameterValue::PositiveInteger(4),
+                ParameterValue::Probability(0.0),
+            ])
             .unwrap()(&mut rng);
         let mut edges = g
             .iter_edges()
@@ -168,7 +166,11 @@ mod tests {
     fn test_p_is_zero_3_2() {
         let mut rng = rand::thread_rng();
         let g: Graph<Directed> = WattsStrogatzGeneratorFactory
-            .try_with_params("3,2,0")
+            .try_with_params(vec![
+                ParameterValue::PositiveInteger(3),
+                ParameterValue::PositiveInteger(2),
+                ParameterValue::Probability(0.0),
+            ])
             .unwrap()(&mut rng);
         let mut edges = g
             .iter_edges()
@@ -181,7 +183,11 @@ mod tests {
     fn test_p_is_one_3_2() {
         let mut rng = rand::thread_rng();
         let g: Graph<Directed> = WattsStrogatzGeneratorFactory
-            .try_with_params("3,2,1")
+            .try_with_params(vec![
+                ParameterValue::PositiveInteger(3),
+                ParameterValue::PositiveInteger(2),
+                ParameterValue::Probability(1.0),
+            ])
             .unwrap()(&mut rng);
         let mut edges = g
             .iter_edges()

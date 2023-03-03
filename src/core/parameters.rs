@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 
-pub struct ParameterParser {
+pub(crate) struct ParameterParser {
     parameter_types: Vec<ParameterType>,
 }
 
@@ -28,8 +28,11 @@ impl ParameterParser {
     }
 }
 
+/// The types allowed for parameters.
 pub enum ParameterType {
+    /// A positive integer, possibly null
     PositiveInteger,
+    /// A floating point number between 0 and 1 (both allowed)
     Probability,
 }
 
@@ -53,13 +56,24 @@ impl ParameterType {
     }
 }
 
+/// A wrapper around a value read from a string.
+///
+/// Its value should have been checked against an unexpected type.
+/// The value must be unwrapped using a compatible function.
 #[derive(Debug, PartialEq)]
 pub enum ParameterValue {
+    /// A positive integer, possibly null
     PositiveInteger(usize),
+    /// A floating point number between 0 and 1 (both allowed)
     Probability(f64),
 }
 
 impl ParameterValue {
+    /// Unwraps a parameter value which value can be seen as a positive integer.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the value can not be seen as a positive integer.
     pub fn unwrap_usize(&self) -> usize {
         match self {
             ParameterValue::PositiveInteger(n) => *n,
@@ -67,6 +81,11 @@ impl ParameterValue {
         }
     }
 
+    /// Unwraps a parameter value which value can be seen as a probability.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the value can not be seen as a probability.
     pub fn unwrap_f64(&self) -> f64 {
         match self {
             ParameterValue::Probability(f) => *f,

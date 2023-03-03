@@ -30,16 +30,16 @@ impl InnerOuterGenerator {
     /// Finally, for each edge in the outer graph, the two corresponding inner graphs are joined with the linker.
     ///
     /// ```
-    /// # use crusti_g2io::{Graph, ChainGeneratorFactory, InnerOuterGenerator, InterGraphEdge, NodeIndexType, FirstToFirstLinker, NamedParam, linkers::BoxedLinker};
+    /// # use crusti_g2io::{Graph, ChainGeneratorFactory, InnerOuterGenerator, InterGraphEdge, NodeIndexType, FirstToFirstLinker, NamedParam, linkers::BoxedLinker, ParameterValue};
     /// use petgraph::Directed;
     /// use rand::SeedableRng;
     /// use rand_pcg::Pcg32;
     ///
-    /// let first_node_edge_selector: BoxedLinker<Directed, Pcg32> = FirstToFirstLinker::default().try_with_params("").unwrap();
+    /// let first_node_edge_selector: BoxedLinker<Directed, Pcg32> = FirstToFirstLinker::default().try_with_params(vec![]).unwrap();
     /// let inner_outer_generator = InnerOuterGenerator::default();
     /// let inner_outer = inner_outer_generator.new_inner_outer(
-    ///     ChainGeneratorFactory::default().try_with_params("2").unwrap(),
-    ///     ChainGeneratorFactory::default().try_with_params("3").unwrap(),
+    ///     ChainGeneratorFactory::default().try_with_params(vec![ParameterValue::PositiveInteger(2)]).unwrap(),
+    ///     ChainGeneratorFactory::default().try_with_params(vec![ParameterValue::PositiveInteger(3)]).unwrap(),
     ///     first_node_edge_selector,
     ///     &mut Pcg32::from_entropy(),
     /// );

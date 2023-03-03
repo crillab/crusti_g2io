@@ -1,9 +1,6 @@
 use super::{BoxedLinker, Linker};
-use crate::{
-    core::parameters::{ParameterParser, ParameterType},
-    InterGraphEdge, NamedParam,
-};
-use anyhow::{Context, Result};
+use crate::{InterGraphEdge, NamedParam, ParameterType, ParameterValue};
+use anyhow::Result;
 use petgraph::{Directed, EdgeType};
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
 
@@ -28,8 +25,12 @@ where
         vec!["Links the nodes from the first graph to the ones of the second graph in a random fashion.", "The probability each arc is set is given by the first parameter."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Ty, R>> {
-        try_with_params(params, false)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![ParameterType::Probability]
+    }
+
+    fn try_with_params(&self, parameter_values: Vec<ParameterValue>) -> Result<BoxedLinker<Ty, R>> {
+        try_with_params(parameter_values, false)
     }
 }
 
@@ -60,21 +61,28 @@ where
         vec!["Links the nodes from the first graph to the ones of the second graph in a random fashion, and vice-versa.", "The probability each arc is set is given by the first parameter."]
     }
 
-    fn try_with_params(&self, params: &str) -> Result<BoxedLinker<Directed, R>> {
-        try_with_params(params, true)
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![ParameterType::Probability]
+    }
+
+    fn try_with_params(
+        &self,
+        parameter_values: Vec<ParameterValue>,
+    ) -> Result<BoxedLinker<Directed, R>> {
+        try_with_params(parameter_values, true)
     }
 }
 
 impl<R> Linker<Directed, R> for BidirectionalRandomLinker where R: Rng {}
 
-fn try_with_params<Ty, R>(params: &str, bidirectional: bool) -> Result<BoxedLinker<Ty, R>>
+fn try_with_params<Ty, R>(
+    parameter_values: Vec<ParameterValue>,
+    bidirectional: bool,
+) -> Result<BoxedLinker<Ty, R>>
 where
     R: Rng,
     Ty: EdgeType,
 {
-    let context = "while building a random linker";
-    let parameter_parser = ParameterParser::new(vec![ParameterType::Probability]);
-    let parameter_values = parameter_parser.parse(params).context(context)?;
     let p = parameter_values[0].unwrap_f64();
     Ok(Box::new(move |g1, g2, rng| {
         let proba_uniform = Uniform::new_inclusive(0., 1.);
@@ -106,28 +114,16 @@ mod tests {
     use rand::rngs::ThreadRng;
 
     #[test]
-    fn test_random_not_enough_params() {
-        assert!(
-            (RandomLinker.try_with_params("") as Result<BoxedLinker<Directed, ThreadRng>>).is_err()
-        );
-    }
-
-    #[test]
-    fn test_random_too_much_params() {
-        assert!(
-            (RandomLinker.try_with_params("1,1") as Result<BoxedLinker<Directed, ThreadRng>>)
-                .is_err()
-        );
-    }
-
-    #[test]
     fn test_random_ok_0() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = RandomLinker.try_with_params("0").unwrap();
+        let linker = RandomLinker
+            .try_with_params(vec![ParameterValue::Probability(0.0)])
+            .unwrap();
         assert_eq!(
             vec![] as Vec<InterGraphEdge>,
             linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
@@ -136,12 +132,15 @@ mod tests {
 
     #[test]
     fn test_random_ok_1() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = RandomLinker.try_with_params("1").unwrap();
+        let linker = RandomLinker
+            .try_with_params(vec![ParameterValue::Probability(1.0)])
+            .unwrap();
         assert_eq!(
             vec![
                 InterGraphEdge::FirstToSecond(0, 0),
@@ -154,27 +153,16 @@ mod tests {
     }
 
     #[test]
-    fn test_random_bi_not_enough_params() {
-        assert!((BidirectionalRandomLinker.try_with_params("")
-            as Result<BoxedLinker<Directed, ThreadRng>>)
-            .is_err());
-    }
-
-    #[test]
-    fn test_random_bi_too_much_params() {
-        assert!((BidirectionalRandomLinker.try_with_params("1,1")
-            as Result<BoxedLinker<Directed, ThreadRng>>)
-            .is_err());
-    }
-
-    #[test]
     fn test_random_bi_ok_0() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = BidirectionalRandomLinker.try_with_params("0").unwrap();
+        let linker = BidirectionalRandomLinker
+            .try_with_params(vec![ParameterValue::Probability(0.0)])
+            .unwrap();
         assert_eq!(
             vec![] as Vec<InterGraphEdge>,
             linker((0, &g0).into(), (1, &g1).into(), &mut rand::thread_rng())
@@ -183,12 +171,15 @@ mod tests {
 
     #[test]
     fn test_random_bi_ok_1() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> =
-            ChainGeneratorFactory.try_with_params("2").unwrap();
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+            .try_with_params(vec![ParameterValue::PositiveInteger(2)])
+            .unwrap();
         let mut rng = rand::thread_rng();
         let g0 = graph_generator(&mut rng);
         let g1 = graph_generator(&mut rng);
-        let linker = BidirectionalRandomLinker.try_with_params("1").unwrap();
+        let linker = BidirectionalRandomLinker
+            .try_with_params(vec![ParameterValue::Probability(1.0)])
+            .unwrap();
         assert_eq!(
             vec![
                 InterGraphEdge::FirstToSecond(0, 0),
