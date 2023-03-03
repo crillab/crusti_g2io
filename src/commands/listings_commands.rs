@@ -1,7 +1,7 @@
 use super::logging_level_arg;
 use anyhow::Result;
 use crusti_app_helper::{App, AppSettings, ArgMatches, Command, SubCommand};
-use crusti_g2io::{generators, linkers, NamedParam};
+use crusti_g2io::{display, generators, linkers, NamedParam};
 
 macro_rules! listing_cmd {
     ($cmd_ident:ident, $cmd_name:expr, $cmd_description:expr, $listing_fn:expr) => {
@@ -59,6 +59,20 @@ listing_cmd!(
     "linkers-undirected",
     "Lists the available linkers for undirected graphs",
     linkers::iter_undirected_linkers()
+);
+
+listing_cmd!(
+    DisplayEnginesUndirectedCommand,
+    "display-engines-undirected",
+    "Lists the available display engines for undirected graphs",
+    display::iter_undirected_display_engines()
+);
+
+listing_cmd!(
+    DisplayEnginesDirectedCommand,
+    "display-engines-directed",
+    "Lists the available display engines for directed graphs",
+    display::iter_directed_display_engines()
 );
 
 fn print_listing<I, S, T>(collection: I)

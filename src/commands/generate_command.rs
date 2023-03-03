@@ -2,14 +2,16 @@ use super::logging_level_arg;
 use anyhow::{Context, Result};
 use crusti_app_helper::{info, App, AppSettings, Arg, ArgMatches, Command, SubCommand};
 use crusti_g2io::{
+    display::{self, BoxedDisplay},
     generators::{self, BoxedGenerator},
     linkers::{self, BoxedLinker},
-    InnerOuterGenerationStep, InnerOuterGenerator,
+    Graph, InnerOuterGenerationStep, InnerOuterGenerator,
 };
 use petgraph::EdgeType;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use std::{
+    fmt::Display,
     fs::File,
     io::{self, BufWriter, Write},
 };
@@ -48,6 +50,7 @@ impl<'a> Command<'a> for GenerateDirectedCommand {
             arg_matches,
             generators::directed_generator_factory_from_str,
             linkers::directed_linker_from_str,
+            display::directed_display_engine_from_str,
         )
     }
 }
@@ -79,6 +82,7 @@ impl<'a> Command<'a> for GenerateUndirectedCommand {
             arg_matches,
             generators::undirected_generator_factory_from_str,
             linkers::undirected_linker_from_str,
+            display::undirected_display_engine_from_str,
         )
     }
 }
@@ -109,10 +113,10 @@ fn args_for_generate<'a>() -> Vec<Arg<'a, 'a>> {
         Arg::with_name(ARG_GRAPH_FORMAT)
             .short("f")
             .long("format")
+            .empty_values(false)
             .multiple(false)
-            .default_value("dot")
-            .possible_values(&["dot", "graphml", "dimacs"])
-            .help("the output format used for graphs"),
+            .help("the output format used for graphs")
+            .required(true),
         Arg::with_name(ARG_EXPORT_TO_FILE)
             .short("x")
             .long("export")
@@ -129,14 +133,16 @@ fn args_for_generate<'a>() -> Vec<Arg<'a, 'a>> {
     ]
 }
 
-fn execute_with<F, G, Ty>(
+fn execute_with<F, G, H, Ty>(
     arg_matches: &ArgMatches<'_>,
     generator_factory_from_str: F,
     linker_from_str: G,
+    display_from_str: H,
 ) -> Result<()>
 where
     F: Fn(&str) -> Result<BoxedGenerator<Ty, Pcg32>>,
     G: Fn(&str) -> Result<BoxedLinker<Ty, Pcg32>>,
+    H: Fn(&str) -> Result<BoxedDisplay<Ty>>,
     Ty: EdgeType + Send + Sync,
 {
     let outer_generator = generator_factory_from_str(arg_matches.value_of(ARG_OUTER).unwrap())
@@ -145,6 +151,8 @@ where
         .context("while parsing the inner generator CLI argument")?;
     let linker = linker_from_str(arg_matches.value_of(ARG_LINKER).unwrap())
         .context("while parsing the linker CLI argument")?;
+    let display_engine = display_from_str(arg_matches.value_of(ARG_GRAPH_FORMAT).unwrap())
+        .context("while parsing the display engine CLI argument")?;
     let seed = match arg_matches.value_of(ARG_SEED) {
         Some(s) => s
             .parse::<u64>()
@@ -179,12 +187,33 @@ where
         Some(path) => Box::new(File::create(path).context("while creating the output file")?),
     };
     let mut out = BufWriter::new(unbuffered_out);
-    match arg_matches.value_of(ARG_GRAPH_FORMAT).unwrap() {
-        "dot" => writeln!(&mut out, "{}", g.to_dot_display()),
-        "graphml" => writeln!(&mut out, "{}", g.to_graphml_display()),
-        "dimacs" => writeln!(&mut out, "{}", g.to_dimacs_display()),
-        _ => unreachable!(),
-    }
+    writeln!(
+        &mut out,
+        "{}",
+        DisplayEngineWrapper {
+            display_engine,
+            graph: &g,
+        }
+    )
     .context("while writing the graph")?;
     Ok(())
+}
+
+type GraphDisplayFn<Ty> = dyn Fn(&mut std::fmt::Formatter, &Graph<Ty>) -> std::fmt::Result;
+
+struct DisplayEngineWrapper<'a, Ty>
+where
+    Ty: EdgeType,
+{
+    display_engine: Box<GraphDisplayFn<Ty>>,
+    graph: &'a Graph<Ty>,
+}
+
+impl<Ty> Display for DisplayEngineWrapper<'_, Ty>
+where
+    Ty: EdgeType,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        (self.display_engine)(f, self.graph)
+    }
 }

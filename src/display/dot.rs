@@ -1,33 +1,37 @@
-use crate::Graph;
+use super::{BoxedDisplay, GraphDisplay};
+use crate::{NamedParam, ParameterType, ParameterValue};
+use anyhow::Result;
 use petgraph::{
     dot::{Config, Dot},
     EdgeType,
 };
-use std::fmt::Display;
 
-impl<Ty> Graph<Ty>
+#[derive(Default)]
+pub struct DotGraphDisplay;
+
+impl<Ty> NamedParam<BoxedDisplay<Ty>> for DotGraphDisplay
 where
     Ty: EdgeType,
 {
-    /// Returns an object used to display the graph using the [Graphviz DOT format](https://graphviz.org/doc/info/lang.html).
-    pub fn to_dot_display(&self) -> DotDisplay<Ty> {
-        DotDisplay(self)
+    fn name(&self) -> &'static str {
+        "dot"
+    }
+
+    fn description(&self) -> Vec<&'static str> {
+        vec!["Output a graph using the Graphviz DOT format."]
+    }
+
+    fn expected_parameter_types(&self) -> Vec<ParameterType> {
+        vec![]
+    }
+
+    fn try_with_params(&self, _parameter_values: Vec<ParameterValue>) -> Result<BoxedDisplay<Ty>> {
+        Ok(Box::new(|f, g| {
+            let dot_display =
+                Dot::with_config(g.petgraph(), &[Config::NodeIndexLabel, Config::EdgeNoLabel]);
+            std::fmt::Debug::fmt(&dot_display, f)
+        }))
     }
 }
 
-pub struct DotDisplay<'a, Ty>(&'a Graph<Ty>)
-where
-    Ty: EdgeType;
-
-impl<Ty> Display for DotDisplay<'_, Ty>
-where
-    Ty: EdgeType,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let dot_display = Dot::with_config(
-            self.0.petgraph(),
-            &[Config::NodeIndexLabel, Config::EdgeNoLabel],
-        );
-        std::fmt::Debug::fmt(&dot_display, f)
-    }
-}
+impl<Ty> GraphDisplay<Ty> for DotGraphDisplay where Ty: EdgeType {}

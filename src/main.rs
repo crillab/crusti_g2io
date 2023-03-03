@@ -1,8 +1,9 @@
 mod commands;
 
 use commands::{
-    GenerateDirectedCommand, GenerateUndirectedCommand, GeneratorsDirectedCommand,
-    GeneratorsUndirectedCommand, LinkersDirectedCommand, LinkersUndirectedCommand,
+    DisplayEnginesDirectedCommand, DisplayEnginesUndirectedCommand, GenerateDirectedCommand,
+    GenerateUndirectedCommand, GeneratorsDirectedCommand, GeneratorsUndirectedCommand,
+    LinkersDirectedCommand, LinkersUndirectedCommand,
 };
 use crusti_app_helper::{AppHelper, Command};
 
@@ -23,6 +24,8 @@ pub(crate) fn create_app_helper() -> AppHelper<'static> {
         Box::new(GeneratorsUndirectedCommand::new()),
         Box::new(LinkersDirectedCommand::new()),
         Box::new(LinkersUndirectedCommand::new()),
+        Box::new(DisplayEnginesDirectedCommand::new()),
+        Box::new(DisplayEnginesUndirectedCommand::new()),
     ];
     for c in commands {
         app.add_command(c);

@@ -53,7 +53,7 @@ There are two simple ways of getting rid of this behavior:
 * set the `--logging-level` to a restrictive value (eg. `warn`, `error`, `off`).
 
 By default, the graph is formatted using the graphviz's dot format; it can be changed with the `-f` option.
-Run `crusti_g2io generate-undirected -h` or `crusti_g2io generate-directed -h` to get the list of available values for this option.
+Run `crusti_g2io display-engines-undirected` or `crusti_g2io display-engines-directed` to get the list of available values for this option.
 
 ## Reproducibility
 

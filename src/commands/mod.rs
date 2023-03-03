@@ -2,6 +2,7 @@ mod generate_command;
 pub use generate_command::{GenerateDirectedCommand, GenerateUndirectedCommand};
 
 mod listings_commands;
+pub use listings_commands::{DisplayEnginesDirectedCommand, DisplayEnginesUndirectedCommand};
 pub use listings_commands::{GeneratorsDirectedCommand, GeneratorsUndirectedCommand};
 pub use listings_commands::{LinkersDirectedCommand, LinkersUndirectedCommand};
 
