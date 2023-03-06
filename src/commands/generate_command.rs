@@ -12,8 +12,9 @@ use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use std::{
     fmt::Display,
-    fs::File,
+    fs::{self, File},
     io::{self, BufWriter, Write},
+    path::PathBuf,
 };
 
 pub(crate) const ARG_INNER: &str = "INNER";
@@ -182,10 +183,19 @@ where
         g.n_nodes(),
         g.n_edges()
     );
-    let unbuffered_out: Box<dyn Write> = match arg_matches.value_of(ARG_EXPORT_TO_FILE) {
-        None => Box::new(io::stdout()),
-        Some(path) => Box::new(File::create(path).context("while creating the output file")?),
-    };
+    let (str_out, unbuffered_out): (String, Box<dyn Write>) =
+        match arg_matches.value_of(ARG_EXPORT_TO_FILE) {
+            None => ("standard output".to_string(), Box::new(io::stdout())),
+            Some(path) => {
+                let file = File::create(path).context("while creating the output file")?;
+                let str_path = fs::canonicalize(&PathBuf::from(path))?;
+                (
+                    format!("{:?}", str_path),
+                    Box::new(file),
+                )
+            }
+        };
+    info!("writing graph to {}", str_out);
     let mut out = BufWriter::new(unbuffered_out);
     writeln!(
         &mut out,
