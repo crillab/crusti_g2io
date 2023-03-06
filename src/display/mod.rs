@@ -10,6 +10,9 @@
 //! The only real difference is in the implementation of the `try_with_params` function:
 //! for display engines, the returned closure takes a [`Formatter`](std::fmt::Formatter) and a graph and display the graph, returning a formatter result.
 
+mod aspartix;
+use aspartix::AspartixGraphDisplay;
+
 mod dot;
 use dot::DotGraphDisplay;
 
@@ -37,7 +40,8 @@ where
 }
 
 lazy_static! {
-    pub(crate) static ref DISPLAY_DIRECTED: [Box<dyn GraphDisplay<Directed> + Sync>; 3] = [
+    pub(crate) static ref DISPLAY_DIRECTED: [Box<dyn GraphDisplay<Directed> + Sync>; 4] = [
+        Box::new(AspartixGraphDisplay::default()),
         Box::new(DotGraphDisplay::default()),
         Box::new(GraphMLGraphDisplay::default()),
         Box::new(ICCMADimacsGraphDisplay::default())
