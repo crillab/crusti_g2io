@@ -1,7 +1,7 @@
 use super::{BoxedDisplay, GraphDisplay};
 use crate::{NamedParam, ParameterType, ParameterValue};
 use anyhow::Result;
-use petgraph::{Directed};
+use petgraph::Directed;
 
 #[derive(Default)]
 pub struct AspartixGraphDisplay;
