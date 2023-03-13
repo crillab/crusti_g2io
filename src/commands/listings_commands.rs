@@ -80,6 +80,8 @@ where
     I: Iterator<Item = &'static S>,
     S: NamedParam<T> + Sync + ?Sized + 'static,
 {
+    println!("When parameters are required, they must appear after a slash appended to the name and they must be split by commas: foo/1,2,3");
+    println!();
     let listing: Vec<(&str, Vec<&str>)> = collection.map(|f| (f.name(), f.description())).collect();
     let name_display_size = listing.iter().map(|l| l.0.len()).max().unwrap_or_default() + 4;
     listing.iter().for_each(|l| {
