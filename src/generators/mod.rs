@@ -23,12 +23,12 @@
 //! 1. Write your generator factory in a dedicated `.rs` file in the `src/generators`
 //! 2. Register them in the `generators` module
 //!
-//! In this section, we rewrite the [`ChainGeneratorFactory`].
+//! In this section, we rewrite the [`PathGeneratorFactory`].
 //!
-//! The first step in to create the file `src/generators/chain_generator.rs`, and register it in `src/generators/mod.rs` by adding the line `mod chain_generator;`.
+//! The first step in to create the file `src/generators/path_generator.rs`, and register it in `src/generators/mod.rs` by adding the line `mod path_generator;`.
 //!
 //! Registering it before writing it will let your IDE try to compile it and show you the potential issues in your code.
-//! Now, it is time to write the code of the factory in `src/generators/chain_generator.rs`.
+//! Now, it is time to write the code of the factory in `src/generators/path_generator.rs`.
 //!
 //! A generator factory in an object with a name, a description and an expected set of parameters, that provides a function (the generator) that generates graphs given a pseudorandom number generator (PRNG).
 //! Typically, this kind of object does not need fields; we can so declare it as an empty structure and make it derive the [`Default`] trait.
@@ -36,21 +36,21 @@
 //!
 //! ```
 //! #[derive(Default)]
-//! pub struct ChainGeneratorFactoryClone;
+//! pub struct PathGeneratorFactoryClone;
 //! ```
 //!
 //! A generator factory is a structure that implements the [`GeneratorFactory`] trait, which itself inherits from [`NamedParam`].
 //! Let's write the two trait implementations with their functions left unimplemented.
 //!
 //! ```
-//! # use crusti_g2io::{ChainGeneratorFactory, NamedParam, ParameterType, ParameterValue};
+//! # use crusti_g2io::{PathGeneratorFactory, NamedParam, ParameterType, ParameterValue};
 //! # use crusti_g2io::generators::{BoxedGenerator, GeneratorFactory};
 //! # use petgraph::EdgeType;
 //! # use rand::Rng;
 //! # use anyhow::Result;
 //! # #[derive(Default)]
-//! # pub struct ChainGeneratorFactoryClone;
-//! impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for ChainGeneratorFactoryClone
+//! # pub struct PathGeneratorFactoryClone;
+//! impl<Ty, R> NamedParam<BoxedGenerator<Ty, R>> for PathGeneratorFactoryClone
 //! where
 //!     Ty: EdgeType,
 //! {
@@ -74,7 +74,7 @@
 //!     }
 //! }
 //!
-//! impl<Ty, R> GeneratorFactory<Ty, R> for ChainGeneratorFactoryClone
+//! impl<Ty, R> GeneratorFactory<Ty, R> for PathGeneratorFactoryClone
 //! where
 //!     R: Rng,
 //!     Ty: EdgeType,
@@ -93,20 +93,20 @@
 //! # struct Dummy;
 //! # impl Dummy {
 //!     fn name(&self) -> &'static str {
-//!         "chain"
+//!         "path"
 //!     }
 //!
 //!     fn description(&self) -> Vec<&'static str> {
 //!         vec![
-//!             "A generator producing a chain of nodes.",
-//!             "The first parameter gives the length of the chain.",
+//!             "A generator producing a path graph.",
+//!             "The first parameter gives the length of the path.",
 //!         ]
 //!     }
 //! # }
 //! ```
 //!
 //! The `expected_parameter_types` returns the types of the expected parameters as a vector of [`ParameterType`](crate::ParameterType).
-//! For the chain generator, a single positive integer (the length of the chain) must be provided.
+//! For the path generator, a single positive integer (the length of the path) must be provided.
 //!
 //! ```
 //! # use crusti_g2io::ParameterType;
@@ -125,9 +125,9 @@
 //! The function `try_with_params` takes as input a vector of parameter values.
 //! At this point, the string provided on the CLI has already been parsed and checked against the expected type.
 //! You just have to unwrap the parameter values with the correct `unwrap_` function, depending on the parameter type.
-//! In the case of the [`ChainGeneratorFactory`], we expect parameters to contain a single positive integer; so we can get it with `parameter_values[0].unwrap_usize()`.
+//! In the case of the [`PathGeneratorFactory`], we expect parameters to contain a single positive integer; so we can get it with `parameter_values[0].unwrap_usize()`.
 //!
-//! The generator must produce chains of `n` nodes, for any (unused) PRNG.
+//! The generator must produce path graphs of `n` nodes, for any (unused) PRNG.
 //! That is, if `n` is 0, the function must return an empty graph.
 //! For `n` equal to one, a graph containing a single node must be returned.
 //! For higher values of `n`, the graph must contain `n` nodes and edges for each couple of nodes `(i, i+1)`.
@@ -194,22 +194,22 @@
 //! In case the kind of graph is important, one can check the Boolean value returned by `Ty::is_directed()`.
 //!
 //! Finally, the last step is to register the generator factory into `src/generators/mod.rs`.
-//! To do this, import the factory into `mod.rs` with a statement `pub use chain_generator::ChainGeneratorFactory;`,
+//! To do this, import the factory into `mod.rs` with a statement `pub use path_generator::PathGeneratorFactory;`,
 //! and add it to the set of undirected and directed factories:
 //!
 //! ```
 //! # use lazy_static::lazy_static;
-//! # use crusti_g2io::{generators::GeneratorFactory, BarabasiAlbertGeneratorFactory, ErdosRenyiGeneratorFactory, TreeGeneratorFactory, WattsStrogatzGeneratorFactory, ChainGeneratorFactory};
+//! # use crusti_g2io::{generators::GeneratorFactory, BarabasiAlbertGeneratorFactory, ErdosRenyiGeneratorFactory, TreeGeneratorFactory, WattsStrogatzGeneratorFactory, PathGeneratorFactory};
 //! # use petgraph::{Directed, Undirected};
 //! # use rand_pcg::Pcg32;
-//! # type ChainGeneratorFactoryClone = ChainGeneratorFactory;
+//! # type PathGeneratorFactoryClone = PathGeneratorFactory;
 //! lazy_static! {
 //!     pub(crate) static ref GENERATOR_FACTORIES_DIRECTED_PCG32: [Box<dyn GeneratorFactory<Directed, Pcg32> + Sync>; 5] = [
 //!         Box::new(BarabasiAlbertGeneratorFactory::default()),
 //!         Box::new(ErdosRenyiGeneratorFactory::default()),
 //!         Box::new(TreeGeneratorFactory::default()),
 //!         Box::new(WattsStrogatzGeneratorFactory::default()),
-//!         Box::new(ChainGeneratorFactoryClone::default()),
+//!         Box::new(PathGeneratorFactoryClone::default()),
 //!     ];
 //! }
 //!
@@ -219,7 +219,7 @@
 //!         Box::new(ErdosRenyiGeneratorFactory::default()),
 //!         Box::new(TreeGeneratorFactory::default()),
 //!         Box::new(WattsStrogatzGeneratorFactory::default()),
-//!         Box::new(ChainGeneratorFactoryClone::default()),
+//!         Box::new(PathGeneratorFactoryClone::default()),
 //!     ];
 //! }
 //! ```
@@ -227,8 +227,8 @@
 mod barabasi_albert_generator;
 pub use barabasi_albert_generator::BarabasiAlbertGeneratorFactory;
 
-mod chain_generator;
-pub use chain_generator::ChainGeneratorFactory;
+mod path_generator;
+pub use path_generator::PathGeneratorFactory;
 
 mod erdos_renyi;
 pub use erdos_renyi::ErdosRenyiGeneratorFactory;
@@ -256,7 +256,7 @@ use rand_pcg::Pcg32;
 /// use rand_core::SeedableRng;
 ///
 /// // getting a boxed generating function from a string
-/// let generator = generators::directed_generator_factory_from_str("chain/3").unwrap();
+/// let generator = generators::directed_generator_factory_from_str("path/3").unwrap();
 /// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());
 /// ```
 pub type BoxedGenerator<Ty, R> = Box<dyn Fn(&mut R) -> Graph<Ty> + Sync + Send>;
@@ -272,7 +272,7 @@ where
 lazy_static! {
     pub(crate) static ref GENERATOR_FACTORIES_DIRECTED_PCG32: [Box<dyn GeneratorFactory<Directed, Pcg32> + Sync>; 5] = [
         Box::new(BarabasiAlbertGeneratorFactory::default()),
-        Box::new(ChainGeneratorFactory::default()),
+        Box::new(PathGeneratorFactory::default()),
         Box::new(ErdosRenyiGeneratorFactory::default()),
         Box::new(TreeGeneratorFactory::default()),
         Box::new(WattsStrogatzGeneratorFactory::default()),
@@ -282,7 +282,7 @@ lazy_static! {
 lazy_static! {
     pub(crate) static ref GENERATOR_FACTORIES_UNDIRECTED_PCG32: [Box<dyn GeneratorFactory<Undirected, Pcg32> + Sync>; 5] = [
         Box::new(BarabasiAlbertGeneratorFactory::default()),
-        Box::new(ChainGeneratorFactory::default()),
+        Box::new(PathGeneratorFactory::default()),
         Box::new(ErdosRenyiGeneratorFactory::default()),
         Box::new(TreeGeneratorFactory::default()),
         Box::new(WattsStrogatzGeneratorFactory::default()),
@@ -325,8 +325,8 @@ pub fn iter_undirected_generator_factories(
 ///
 /// ```
 /// # use crusti_g2io::generators;
-/// assert!(generators::directed_generator_factory_from_str("chain/3").is_ok()); // OK
-/// assert!(generators::directed_generator_factory_from_str("chain/1,2,3").is_err()); // wrong parameters
+/// assert!(generators::directed_generator_factory_from_str("path/3").is_ok()); // OK
+/// assert!(generators::directed_generator_factory_from_str("path/1,2,3").is_err()); // wrong parameters
 /// assert!(generators::directed_generator_factory_from_str("foo/3").is_err()); // unknown generator
 /// ```
 pub fn directed_generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Directed, Pcg32>> {
@@ -338,8 +338,8 @@ pub fn directed_generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Dir
 ///
 /// ```
 /// # use crusti_g2io::generators;
-/// assert!(generators::undirected_generator_factory_from_str("chain/3").is_ok()); // OK
-/// assert!(generators::undirected_generator_factory_from_str("chain/1,2,3").is_err()); // wrong parameters
+/// assert!(generators::undirected_generator_factory_from_str("path/3").is_ok()); // OK
+/// assert!(generators::undirected_generator_factory_from_str("path/1,2,3").is_err()); // wrong parameters
 /// assert!(generators::undirected_generator_factory_from_str("foo/3").is_err()); // unknown generator
 /// ```
 pub fn undirected_generator_factory_from_str(s: &str) -> Result<BoxedGenerator<Undirected, Pcg32>> {
@@ -353,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_generator_ok() {
-        assert!(directed_generator_factory_from_str("chain/1").is_ok());
+        assert!(directed_generator_factory_from_str("path/1").is_ok());
     }
 
     #[test]
@@ -363,16 +363,16 @@ mod tests {
 
     #[test]
     fn test_generator_no_params() {
-        assert!(directed_generator_factory_from_str("chain").is_err());
+        assert!(directed_generator_factory_from_str("path").is_err());
     }
 
     #[test]
     fn test_generator_too_much_params() {
-        assert!(directed_generator_factory_from_str("chain/1,1").is_err());
+        assert!(directed_generator_factory_from_str("path/1,1").is_err());
     }
 
     #[test]
     fn test_generator_wrong_types_params() {
-        assert!(directed_generator_factory_from_str("chain/0.5").is_err());
+        assert!(directed_generator_factory_from_str("path/0.5").is_err());
     }
 }

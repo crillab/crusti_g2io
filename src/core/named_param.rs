@@ -8,7 +8,7 @@ use super::parameters::ParameterParser;
 /// This trait provides methods to get information on the alternative itself (the name of the parameter, its description),
 /// and a method used to build instances of it with some string parameters.
 ///
-/// See [`ChainGeneratorFactory`](crate::ChainGeneratorFactory) source code for a straightforward implementation of this trait.
+/// See [`PathGeneratorFactory`](crate::PathGeneratorFactory) source code for a straightforward implementation of this trait.
 ///
 /// ```
 /// use crusti_g2io::{generators, ParameterValue};
@@ -23,9 +23,9 @@ use super::parameters::ParameterParser;
 ///     )
 /// }
 ///
-/// // building a generator for chain graphs of length 3 and a related graph.
+/// // building a generator for path graphs of length 3 and a related graph.
 /// let generator_factory = generators::iter_directed_generator_factories()
-///     .find(|f| f.name() == "chain")
+///     .find(|f| f.name() == "path")
 ///     .unwrap();
 /// let generator = generator_factory.try_with_params(vec![ParameterValue::PositiveInteger(3)]).unwrap();
 /// let graph = generator(&mut rand_pcg::Pcg32::from_entropy());

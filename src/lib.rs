@@ -16,8 +16,8 @@ pub mod display;
 
 pub mod generators;
 pub use generators::BarabasiAlbertGeneratorFactory;
-pub use generators::ChainGeneratorFactory;
 pub use generators::ErdosRenyiGeneratorFactory;
+pub use generators::PathGeneratorFactory;
 pub use generators::TreeGeneratorFactory;
 pub use generators::WattsStrogatzGeneratorFactory;
 

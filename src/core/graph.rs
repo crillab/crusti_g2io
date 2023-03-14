@@ -16,7 +16,7 @@ pub type NodeIndexType = usize;
 /// # use crusti_g2io::Graph;
 /// use petgraph::Directed;
 ///
-/// fn chain(n: usize) -> Graph<Directed> {
+/// fn path(n: usize) -> Graph<Directed> {
 ///     let graph = match n {
 ///         0 => Graph::default(),
 ///         1 => {
@@ -34,7 +34,7 @@ pub type NodeIndexType = usize;
 ///     assert_eq!(n-1, graph.n_edges());
 ///     graph
 /// }
-/// # chain(2);
+/// # path(2);
 /// ```
 pub struct Graph<Ty>(petgraph::Graph<(), (), Ty, NodeIndexType>)
 where

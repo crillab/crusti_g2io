@@ -94,13 +94,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generators::{BoxedGenerator, ChainGeneratorFactory};
+    use crate::generators::{BoxedGenerator, PathGeneratorFactory};
     use petgraph::Directed;
     use rand::rngs::ThreadRng;
 
     #[test]
     fn test_f2f_ok() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = PathGeneratorFactory
             .try_with_params(vec![ParameterValue::PositiveInteger(2)])
             .unwrap();
         let mut rng = rand::thread_rng();
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_f2f_bi_ok() {
-        let graph_generator: BoxedGenerator<Directed, ThreadRng> = ChainGeneratorFactory
+        let graph_generator: BoxedGenerator<Directed, ThreadRng> = PathGeneratorFactory
             .try_with_params(vec![ParameterValue::PositiveInteger(2)])
             .unwrap();
         let mut rng = rand::thread_rng();

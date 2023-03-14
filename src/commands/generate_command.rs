@@ -190,10 +190,7 @@ where
                 let file = File::create(path).context("while creating the output file")?;
                 let str_path = fs::canonicalize(&PathBuf::from(path))
                     .with_context(|| format!(r#"while opening file "{}""#, path))?;
-                (
-                    format!("{:?}", str_path),
-                    Box::new(file),
-                )
+                (format!("{:?}", str_path), Box::new(file))
             }
         };
     info!("writing graph to {}", str_out);
