@@ -1,6 +1,6 @@
 # crusti_g2io: a Graph Generator following an Inner/Outer pattern
 
-This app is dedicated to the generation of directed graphs where nodes form communities, with links between these communities.
+This app is dedicated to the generation of graphs where nodes form communities, with links between these communities.
 
 To generate a graph, three parameters must be provided:
   - an _outer graph generator_, which produces a graph used to give the links between the communities;
@@ -9,11 +9,11 @@ To generate a graph, three parameters must be provided:
 
 The app begins by generating the outer graph.
 For each node in it, an inner graph is generated.
-Then, for each (directed) edge in the outer graph, the linker is called to produce the necessary edges.
+Then, for each edge in the outer graph, the linker is called to produce the necessary edges.
 
 ## Generators and linkers
 
-The available graph generators can be list with the `crusti_g2io generators-undirected` and `crusti_g2io generators-directed` command.
+The available graph generators for undirected and directed graphs can be list with the `crusti_g2io generators-undirected` and `crusti_g2io generators-directed` command.
 This command writes the generators and a description about them:
 
 ```text
@@ -39,10 +39,10 @@ Linkers that admit parameters must be built the same way than generators.
 
 ## Generating graphs
 
-To generate a graph, the user must provide to the `generate-undirected` or `generate-directed` command both inner and outer generators, in addition to the linker:
+To generate a graph, the user must provide to the `generate-undirected` or `generate-directed` command both inner and outer generators, the linker and the output format:
 
 ```text
-me@machine:/home/me$ crusti_g2io generate-undirected --inner ba/100,5 --outer chain/5 --linker first
+me@machine:/home/me$ crusti_g2io generate-undirected --inner ba/100,5 --outer path/5 --linker first --format dot
 [...]
 ```
 
@@ -52,7 +52,7 @@ There are two simple ways of getting rid of this behavior:
 * add the `-x` (`--export`) option, followed by a file name: the file will be created/truncated and the graph will be stored into it;
 * set the `--logging-level` to a restrictive value (eg. `warn`, `error`, `off`).
 
-By default, the graph is formatted using the graphviz's dot format; it can be changed with the `-f` option.
+The graph is formatted using the value provided to the `--format` (or `-f`) option.
 Run `crusti_g2io display-engines-undirected` or `crusti_g2io display-engines-directed` to get the list of available values for this option.
 
 ## Reproducibility
