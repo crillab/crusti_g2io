@@ -12,4 +12,4 @@ chrono = "0.4.19"
 clap = "2.33.3"
 fern = { version = "0.6.0", features = ["colored"] }
 log = "0.4.11"
-sysinfo = "0.23.9"
+sysinfo = "0.29"
