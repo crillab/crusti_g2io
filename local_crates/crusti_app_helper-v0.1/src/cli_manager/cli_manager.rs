@@ -20,7 +20,7 @@ use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, Arg};
 use log::info;
 use std::{ffi::OsString, str::FromStr};
-use sysinfo::{ProcessorExt, System, SystemExt};
+use sysinfo::{System, SystemExt, CpuExt};
 
 /// A structure used to handle the set of commands and to process the CLI arguments against them.
 pub(crate) struct CliManager<'a> {
@@ -166,7 +166,7 @@ fn sys_info() {
         sys.os_version().unwrap_or_else(unknown),
         sys.kernel_version().unwrap_or_else(unknown)
     );
-    let mut processor_kinds: Vec<&str> = sys.processors().iter().map(|p| p.brand()).collect();
+    let mut processor_kinds: Vec<&str> = sys.cpus().iter().map(|p| p.brand()).collect();
     processor_kinds.sort();
     processor_kinds.dedup();
     info!(
